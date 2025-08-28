@@ -9,7 +9,7 @@ export function middleware(req: NextRequest) {
   const { pathname, search } = req.nextUrl;
 
   // Allow the login page itself
-  if (pathname === "/admin/login") {
+  if (pathname === "/admin/login" || pathname === "/admin/logout") {
     return NextResponse.next();
   }
 

@@ -29,14 +29,43 @@ export default function Hero({
   const [isPaused, setIsPaused] = React.useState(false);
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
 
+  // Resolved stream URL (props/env or fetched from settings)
+  const [resolvedStream, setResolvedStream] = React.useState<string>(streamUrl || "");
+
+  // If streamUrl prop/env is empty, fetch from /api/settings once on mount
+  React.useEffect(() => {
+    let active = true;
+    if (!streamUrl) {
+      (async () => {
+        try {
+          const res = await fetch("/api/settings", { cache: "no-store" });
+          if (!active) return;
+          if (res.ok) {
+            const data = await res.json().catch(() => null);
+            if (data?.streamUrl && typeof data.streamUrl === "string") {
+              setResolvedStream(data.streamUrl);
+              setErrorMsg(null);
+            }
+          }
+        } catch {
+          // ignore network errors; we will show a friendly message on play
+        }
+      })();
+    }
+    return () => {
+      active = false;
+    };
+  }, [streamUrl]);
+
   // Build audio lazily on first interaction
   const ensureAudio = React.useCallback(async () => {
-    if (!streamUrl) {
+    const url = resolvedStream?.trim();
+    if (!url) {
       setErrorMsg("No stream configured");
       return null;
     }
     if (!audioRef.current) {
-      const el = new Audio(streamUrl);
+      const el = new Audio(url);
       el.crossOrigin = "anonymous"; // harmless if same-origin, enables analyzer later
       el.preload = "none";
       el.loop = false;
@@ -50,7 +79,7 @@ export default function Hero({
       }
     }
     return audioRef.current;
-  }, [streamUrl]);
+  }, [resolvedStream]);
 
   const play = React.useCallback(async () => {
     const el = await ensureAudio();
@@ -65,7 +94,11 @@ export default function Hero({
       setIsPaused(false);
       setErrorMsg(null);
     } catch (e: any) {
-      setErrorMsg(e?.message ?? "Playback failed");
+      const msg =
+        e?.name === "NotAllowedError"
+          ? "Tap again to allow audio (browser blocked autoplay)"
+          : e?.message ?? "Playback failed";
+      setErrorMsg(msg);
     }
   }, [ensureAudio]);
 
@@ -153,6 +186,9 @@ export default function Hero({
                 <p className="text-xs leading-snug text-black/70 sm:text-sm">
                   {showSubtitle}
                 </p>
+                {!resolvedStream ? (
+                  <span className="sr-only">No stream configured</span>
+                ) : null}
                 {errorMsg ? (
                   <p className="mt-1 text-xs text-red-700">{errorMsg}</p>
                 ) : null}
@@ -165,6 +201,7 @@ export default function Hero({
                   type="button"
                   onClick={stop}
                   aria-label="Stop"
+                  title="Stop"
                   className="grid h-9 w-9 place-items-center rounded-full bg-[#E34C4C] text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-black/30"
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
@@ -177,6 +214,7 @@ export default function Hero({
                     type="button"
                     onClick={pause}
                     aria-label="Pause"
+                    title="Pause"
                     className="grid h-9 w-9 place-items-center rounded-full bg-[#F0C419] text-black shadow-sm focus:outline-none focus:ring-2 focus:ring-black/30"
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
@@ -186,8 +224,16 @@ export default function Hero({
                 ) : (
                   <button
                     type="button"
-                    onClick={play}
+                    onClick={() => {
+                      if (!resolvedStream) {
+                        setErrorMsg("No stream configured");
+                        return;
+                      }
+                      void play();
+                    }}
                     aria-label="Play"
+                    title={resolvedStream ? "Play" : "No stream configured"}
+                    disabled={!resolvedStream}
                     className="grid h-9 w-9 place-items-center rounded-full bg-[#F0C419] text-black shadow-sm focus:outline-none focus:ring-2 focus:ring-black/30"
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">

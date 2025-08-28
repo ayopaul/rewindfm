@@ -8,9 +8,6 @@ import * as React from "react";
 export default function SettingsAdminClient({ initial }: { initial: any }) {
   const [form, setForm] = React.useState(() => ({
     streamUrl: initial?.streamUrl || "",
-    timezone: initial?.timezone || "Europe/London",
-    uploadsNamespace: initial?.uploadsNamespace || "rewindfm",
-    aboutHtml: initial?.aboutHtml || "",
     socials: initial?.socials || { instagram: "", twitter: "", youtube: "" },
     theme: initial?.theme || { blogHeaderBg: "#FBB63B" },
   }));
@@ -79,37 +76,6 @@ export default function SettingsAdminClient({ initial }: { initial: any }) {
               placeholder="https://example.com/stream.mp3"
             />
           </Field>
-          <Field label="Timezone">
-            <input
-              className="w-full border border-black px-3 py-2"
-              value={form.timezone}
-              onChange={(e) => setForm((f) => ({ ...f, timezone: e.target.value }))}
-              placeholder="Europe/London"
-            />
-          </Field>
-        </div>
-      </section>
-
-      {/* Content */}
-      <section className="border border-black bg-white p-5">
-        {sectionTitle("Content")}
-        <div className="grid gap-4 md:grid-cols-2">
-          <Field label="Uploads Namespace (under /var/uploads)">
-            <input
-              className="w-full border border-black px-3 py-2"
-              value={form.uploadsNamespace}
-              onChange={(e) => setForm((f) => ({ ...f, uploadsNamespace: e.target.value }))}
-              placeholder="rewindfm"
-            />
-          </Field>
-          <Field label="About HTML">
-            <textarea
-              className="w-full border border-black px-3 py-2 min-h-[120px]"
-              value={form.aboutHtml}
-              onChange={(e) => setForm((f) => ({ ...f, aboutHtml: e.target.value }))}
-              placeholder="<p>About Rewind FM…</p>"
-            />
-          </Field>
         </div>
       </section>
 
@@ -157,7 +123,7 @@ export default function SettingsAdminClient({ initial }: { initial: any }) {
             />
           </Field>
           <div className="text-sm text-black/60">
-            Used on blog title bar; texture gif can be set in the blog page using public/media.
+            Used on blog title bar; background texture remains global.
           </div>
         </div>
       </section>

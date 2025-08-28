@@ -70,16 +70,16 @@ export default function ShowsSection() {
 
   return (
     <section className="bg-[#FFFEF1] text-black relative overflow-hidden">
-      {/* WEEKDAY RAIL (Mon–Fri) */}
+      {/* WEEKDAY RAIL (Mon—Fri) */}
       <DayRail
-        sideLabel="Weekday Lineup"
+        sideLabel="Week-day Lineup"
         sideColor={railColors.weekday}
         days={data.weekday.days}
         validKeys={["mon", "tue", "wed", "thu", "fri"]}
         isFirst={true}
       />
 
-      {/* WEEKEND RAIL (Sat–Sun) */}
+      {/* WEEKEND RAIL (Sat—Sun) */}
       <DayRail
         sideLabel="Weekend Lineup"
         sideColor={railColors.weekend}
@@ -142,101 +142,99 @@ function DayRail({ sideLabel, sideColor, days, validKeys, isFirst }: DayRailProp
 
   return (
     <div className="w-full relative">
-      <div className="grid grid-cols-1 md:grid-cols-[140px,1fr] grid-rows-[auto,auto,1fr] md:grid-rows-[auto,1fr] items-stretch relative z-20">
-        {/* Left rail block (horizontal banner on mobile, vertical stripe on desktop) */}
+      <div className="flex flex-col md:flex-row">
+        {/* Left rail block (vertical stripe) */}
         <div
-          className="row-start-1 md:row-start-2 col-span-1 md:col-start-1 h-14 md:h-full overflow-hidden border-b md:border-b-0 md:border-r border-black/10 z-0 flex items-center justify-center px-4"
+          className="w-full md:w-[140px] h-14 md:h-auto overflow-hidden flex items-center justify-center px-4"
           style={{ backgroundColor: sideColor }}
         >
           {/* Mobile: horizontal label */}
           <span
-            className="md:hidden text-white font-black select-none"
-            style={{ fontFamily: "'Neue Plak', sans-serif", fontSize: "20px", letterSpacing: "0.5px" }}
+            className="md:hidden text-white select-none"
+            style={{ fontFamily: "'Neue Plak', sans-serif", fontWeight: 900, fontSize: "20px", letterSpacing: "0.5px" }}
           >
             {sideLabel}
           </span>
           {/* Desktop: vertical label */}
           <span
-            className="hidden md:inline-block text-white font-black leading-none select-none tracking-wide"
+            className="hidden md:inline-block text-white leading-none select-none tracking-wide"
             style={{
               writingMode: "vertical-rl",
               textOrientation: "mixed",
               transform: "rotate(180deg)",
               fontSize: "clamp(20px, 3.0vw, 36px)",
               letterSpacing: "0.5px",
+              fontFamily: "'Neue Plak', sans-serif",
+              fontWeight: 900,
             }}
           >
             {sideLabel}
           </span>
         </div>
 
-        {/* Header (spans correctly on mobile and desktop) */}
-        <div className="col-span-1 md:col-span-2 row-start-2 md:row-auto px-4 md:px-8 pt-4 md:pt-7 pb-1 bg-white border-b-[3px] border-black/10">
-          <div className="relative flex items-center justify-center min-h-[50px]">
-            {/* Left arrow */}
-            <button
-              onClick={prevDay}
-              disabled={!canPrev}
-              aria-label="Previous day"
-              className="absolute left-0 top-1/2 -translate-y-1/2 w-[28%] sm:w-[36%] lg:w-[44%] h-[8px] flex items-center text-black/40 hover:text-black disabled:opacity-20 transition-colors"
-            >
-              <svg viewBox="0 0 100 8" fill="none" className="w-full h-[8px]">
-                <line x1="100" y1="4" x2="12" y2="4" stroke="currentColor" strokeWidth="1.5" />
-                <polyline points="18,0 6,4 18,8" fill="none" stroke="currentColor" strokeWidth="1.5" />
-              </svg>
-            </button>
+        {/* Right content area */}
+        <div className="flex-1 bg-white">
+          {/* Header */}
+          <div className="px-4 md:px-8 pt-4 md:pt-7 pb-4 border-b border-gray-300">
+            <div className="relative flex items-center justify-center min-h-[50px]">
+              {/* Left arrow */}
+              <button
+                onClick={prevDay}
+                disabled={!canPrev}
+                aria-label="Previous day"
+                className="absolute left-0 top-1/2 -translate-y-1/2 w-[28%] sm:w-[36%] lg:w-[44%] h-[3px] flex items-center text-black/40 hover:text-black disabled:opacity-20 transition-colors"
+              >
+                <svg viewBox="0 0 100 3" fill="none" className="w-full h-[3px]">
+                  <line x1="100" y1="1.5" x2="12" y2="1.5" stroke="currentColor" strokeWidth="3" />
+                  <polyline points="18,0 6,1.5 18,3" fill="none" stroke="currentColor" strokeWidth="3" />
+                </svg>
+              </button>
 
-            {/* Center day label */}
-            <h2
-              className="text-[42px] md:text-[52px] font-black text-black select-none tracking-tight"
-              style={{ fontFamily: "'Neue Plak', sans-serif" }}
-            >
-              {prettyDayLabel(selected?.label ?? "", selected?.key)}
-            </h2>
+              {/* Center day label */}
+              <h2
+                className="text-[42px] md:text-[52px] font-black text-black select-none tracking-tight"
+                style={{ fontFamily: "'Neue Plak', sans-serif" }}
+              >
+                {prettyDayLabel(selected?.label ?? "", selected?.key)}
+              </h2>
 
-            {/* Right arrow */}
-            <button
-              onClick={nextDay}
-              disabled={!canNext}
-              aria-label="Next day"
-              className="absolute right-0 top-1/2 -translate-y-1/2 w-[28%] sm:w-[36%] lg:w-[44%] h-[8px] flex items-center justify-end text-black/40 hover:text-black disabled:opacity-20 transition-colors"
-            >
-              <svg viewBox="0 0 100 8" fill="none" className="w-full h-[8px]">
-                <line x1="0" y1="4" x2="88" y2="4" stroke="currentColor" strokeWidth="1.5" />
-                <polyline points="82,0 94,4 82,8" fill="none" stroke="currentColor" strokeWidth="1.5" />
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        {/* Shows content (content row, right column) */}
-        <div className="row-start-3 md:row-start-2 col-span-1 md:col-start-2 relative z-10 flex flex-col bg-white">
-          <div className="px-8 py-6">
-            <div
-              ref={scrollerRef}
-              className="grid grid-cols-2 gap-0 divide-x divide-black/20 md:grid-cols-none md:flex md:items-stretch md:gap-0 md:divide-x md:overflow-x-auto md:snap-x md:snap-mandatory scrollbar-none"
-            >
-              {selected?.shows?.map((show, idx) => (
-                <div
-                  key={show.id}
-                  className={
-                    (idx === 0
-                      ? "md:pr-6 "
-                      : idx === (selected.shows?.length || 0) - 1
-                      ? "md:pl-6 "
-                      : "md:px-6 ") +
-                    "p-4 h-full flex md:snap-start md:shrink-0 md:basis-1/3 md:min-w-[33.333%]"
-                  }
-                >
-                  <ShowCard show={show} />
-                </div>
-              ))}
+              {/* Right arrow */}
+              <button
+                onClick={nextDay}
+                disabled={!canNext}
+                aria-label="Next day"
+                className="absolute right-0 top-1/2 -translate-y-1/2 w-[28%] sm:w-[36%] lg:w-[44%] h-[3px] flex items-center justify-end text-black/40 hover:text-black disabled:opacity-20 transition-colors"
+              >
+                <svg viewBox="0 0 100 3" fill="none" className="w-full h-[3px]">
+                  <line x1="0" y1="1.5" x2="88" y2="1.5" stroke="currentColor" strokeWidth="3" />
+                  <polyline points="82,0 94,1.5 82,3" fill="none" stroke="currentColor" strokeWidth="3" />
+                </svg>
+              </button>
             </div>
           </div>
 
-          {/* Bottom border */}
-          <div className="px-8 pb-0">
-            <div className="h-[3px] w-full bg-black/10" />
+          {/* Shows content */}
+          <div className="relative z-10 flex flex-col">
+            <div className="px-8 py-6">
+              <div
+                ref={scrollerRef}
+                className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-0 md:divide-x md:divide-gray-300"
+              >
+                {selected?.shows?.slice(0, 3).map((show, idx) => (
+                  <div
+                    key={show.id}
+                    className="flex md:px-6 first:md:pl-0 last:md:pr-0"
+                  >
+                    <ShowCard show={show} />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Bottom border */}
+            <div className="px-8 pb-0">
+              <div className="h-[3px] w-full bg-gray-300" />
+            </div>
           </div>
         </div>
       </div>
@@ -246,15 +244,15 @@ function DayRail({ sideLabel, sideColor, days, validKeys, isFirst }: DayRailProp
 
 function ShowCard({ show }: { show: Show }) {
   return (
-    <article className="h-full min-h-[480px] flex flex-col">
+    <article className="w-full flex flex-col">
       {/* Image */}
-      <div className="relative w-full aspect-[4/3] bg-black/5 mb-4">
+      <div className="relative w-full aspect-[4/3] bg-black/5 mb-4 overflow-hidden">
         {show.imageUrl ? (
           <Image
             src={show.imageUrl}
             alt={show.title}
             fill
-            sizes="(max-width: 1024px) 45vw, 30vw"
+            sizes="(max-width: 1024px) 100vw, 33vw"
             className="object-cover"
           />
         ) : (
@@ -266,7 +264,7 @@ function ShowCard({ show }: { show: Show }) {
       <div className="flex-1 flex flex-col space-y-3">
         {/* Title */}
         <h3
-          className="text-[24px] font-bold leading-tight text-black tracking-tight"
+          className="text-[20px] md:text-[24px] text-black font-semibold tracking-tight leading-tight"
           style={{ fontFamily: "'Neue Plak', sans-serif" }}
         >
           {show.title}
@@ -275,8 +273,16 @@ function ShowCard({ show }: { show: Show }) {
         {/* Description */}
         {show.description ? (
           <p
-            className="text-sm text-black/70 line-clamp-3 leading-relaxed"
-            style={{ fontFamily: "'Neue Plak', sans-serif" }}
+            className="text-sm text-black/70 leading-relaxed"
+            style={{ 
+              fontFamily: "'Neue Plak', sans-serif", 
+              fontWeight: 400,
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden'
+            }}
+            title={show.description}
           >
             {show.description}
           </p>
@@ -289,8 +295,8 @@ function ShowCard({ show }: { show: Show }) {
               {show.oaps.map((oap) => (
                 <div
                   key={oap.id}
-                  className="flex items-center gap-2 bg-black/10 px-3 py-1.5 text-xs font-semibold text-black"
-                  style={{ fontFamily: "'Neue Plak', sans-serif" }}
+                  className="flex items-center gap-2 bg-black/10 px-3 py-1.5 text-xs text-black rounded-sm"
+                  style={{ fontFamily: "'Neue Plak', sans-serif", fontWeight: 600 }}
                 >
                   {oap.avatarUrl ? (
                     <Image
