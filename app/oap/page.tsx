@@ -1,10 +1,9 @@
-
-
 // app/oap/page.tsx
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Image from "next/image";
 import { PrismaClient } from "@prisma/client";
+import Link from "next/link";
 
 export const metadata = { title: "OAPs · Rewind FM" };
 
@@ -54,8 +53,13 @@ export default async function OapsPage() {
           {oaps.map((oap) => (
             <article
               key={oap.id}
-              className="group rounded-md border border-black/15 bg-white/90 p-4 sm:p-5 hover:bg-black/[0.03] transition-colors"
+              className="group rounded-md border border-black/15 bg-white/90 p-4 sm:p-5 hover:bg-black/[0.03] transition-colors relative cursor-pointer"
             >
+              <Link
+                href={`/oap/${oap.id}`}
+                aria-label={`View ${oap.name}`}
+                className="absolute inset-0 z-10"
+              />
               <div className="relative mx-auto h-28 w-28 sm:h-32 sm:w-32 overflow-hidden rounded-full border border-black/20 bg-black/5">
                 <Image
                   src={`/media/oaps/${oap.id}.jpg`}
@@ -66,7 +70,7 @@ export default async function OapsPage() {
                 />
               </div>
               <h2
-                className="mt-4 text-center"
+                className="mt-4 text-center text-black"
                 style={{ fontFamily: "'Neue Plak', sans-serif", fontWeight: 800, fontSize: "clamp(1rem, 2.2vw, 1.25rem)" }}
               >
                 {oap.name}

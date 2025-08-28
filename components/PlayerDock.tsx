@@ -1,5 +1,3 @@
-
-
 "use client";
 
 import * as React from "react";
@@ -49,6 +47,8 @@ export default function PlayerDock() {
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = React.useState(false);
   const [meta, setMeta] = React.useState(DEFAULT_META);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
 
   // attach global audio once
   React.useEffect(() => {
@@ -84,6 +84,26 @@ export default function PlayerDock() {
     // initialize src
     if (!el.src && meta.streamUrl) el.src = meta.streamUrl;
 
+    (async () => {
+      try {
+        const res = await fetch("/api/settings", { cache: "no-store" });
+        const data = await res.json().catch(() => ({}));
+        const url = String(data?.streamUrl || "");
+        // If nothing set yet, prime from API
+        if (url) {
+          if (!el.src) el.src = url;
+          setMeta((prev) => (prev.streamUrl ? prev : { ...prev, streamUrl: url }));
+          setError(null);
+        } else if (!meta.streamUrl) {
+          setError("No stream configured");
+        }
+      } catch {
+        if (!meta.streamUrl) setError("Unable to load stream settings");
+      } finally {
+        setLoading(false);
+      }
+    })();
+
     return () => {
       el.removeEventListener("play", onPlay);
       el.removeEventListener("pause", onPause);
@@ -96,14 +116,27 @@ export default function PlayerDock() {
     const el = audioRef.current;
     if (!el) return;
     try {
+      // Ensure we have a source before trying to play
+      const src = el.src || meta.streamUrl;
+      if (!src) {
+        setError("No stream configured");
+        return;
+      }
+      if (!el.src) el.src = src;
+
       if (el.paused) {
-        if (!el.src && meta.streamUrl) el.src = meta.streamUrl;
         await el.play();
+        setError(null);
       } else {
         el.pause();
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Audio play error", err);
+      setError(
+        err?.name === "NotAllowedError"
+          ? "Playback blocked by the browser"
+          : "Could not start playback"
+      );
     }
   };
 
@@ -111,6 +144,7 @@ export default function PlayerDock() {
     const el = audioRef.current;
     if (!el) return;
     el.pause();
+    setError(null);
     // reset to start without unloading source
     try {
       el.currentTime = 0;
@@ -174,6 +208,7 @@ export default function PlayerDock() {
               type="button"
               onClick={togglePlay}
               aria-label={isPlaying ? "Pause" : "Play"}
+              title={error ?? (isPlaying ? "Pause" : "Play")}
               className="relative h-10 w-10 md:h-12 md:w-12 rounded-full border border-black shadow-[4px_4px_0_0_rgba(0,0,0,0.75)]"
               style={{ backgroundColor: "#FFD34D" }}
             >

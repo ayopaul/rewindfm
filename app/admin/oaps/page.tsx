@@ -1,6 +1,6 @@
 // app/admin/oaps/page.tsx
 import { PrismaClient } from "@prisma/client";
-import OapsAdminClient from "../../../components/OapsAdminClient";
+import OapsAdminClient from "@/components/OapsAdminClient";
 
 const prisma = new PrismaClient();
 
