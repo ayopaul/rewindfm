@@ -436,7 +436,7 @@ function Row({
         </div>
       ) : (
         <div className="flex items-center gap-4">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
+          { }
           {item.imageUrl ? (
             <img
               src={item.imageUrl}

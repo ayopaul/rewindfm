@@ -8,7 +8,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const { id } = await params;
   try {
     const body = await req.json();
-    const data: any = {};
+    const data: { title?: string; description?: string | null; imageUrl?: string | null } = {};
     if (typeof body?.title === "string") data.title = body.title.trim();
     if (typeof body?.description !== "undefined") data.description = body.description ?? null;
     if (typeof body?.imageUrl !== "undefined") data.imageUrl = body.imageUrl ?? null;

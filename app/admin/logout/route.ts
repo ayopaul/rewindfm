@@ -1,6 +1,5 @@
 // app/admin/logout/route.ts
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 
 const COOKIE_NAME = process.env.ADMIN_COOKIE_NAME || "rewind_admin";
 

@@ -20,7 +20,7 @@ export default function AdminDashboard() {
     (async () => {
       try {
         const res = await fetch("/api/admin/summary", { cache: "no-store" });
-        let data: any = null;
+        let data: Partial<Summary> | null = null;
         const ct = res.headers.get("content-type") || "";
         if (ct.includes("application/json")) {
           data = await res.json();

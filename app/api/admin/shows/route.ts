@@ -4,7 +4,7 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-export async function GET(_req: NextRequest) {
+export async function GET() {
   try {
     const rows = await prisma.show.findMany({
       orderBy: { title: "asc" },

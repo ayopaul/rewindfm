@@ -1,11 +1,11 @@
 // app/api/admin/oaps/route.ts
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
 // List OAPs
-export async function GET(_req: NextRequest) {
+export async function GET() {
   try {
     const items = await prisma.oap.findMany({
       orderBy: { name: "asc" },
@@ -48,10 +48,11 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json(created, { status: 201 });
-  } catch (err: any) {
-    console.error("POST /api/admin/oaps", err);
+  } catch (err: unknown) {
+    const error = err as Error;
+    console.error("POST /api/admin/oaps", error);
     return NextResponse.json(
-      { error: err?.message || "Failed to create OAP" },
+      { error: error.message || "Failed to create OAP" },
       { status: 500 }
     );
   }
