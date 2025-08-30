@@ -27,8 +27,8 @@ function buildUpdateData(body: Record<string, unknown>) {
 }
 
 // Update an OAP
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
-  const { id } = params;
+export async function PUT(req: import('next/server').NextRequest, context: { params: { id: string } }) {
+  const { id } = context.params;
   try {
     const body = await req.json().catch(() => ({}));
     const data = buildUpdateData(body);
@@ -68,11 +68,8 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
 }
 
 // Delete an OAP
-export async function DELETE(
-  _req: Request,
-  { params }: { params: { id: string } }
-) {
-  const { id } = params;
+export async function DELETE(_req: import('next/server').NextRequest, context: { params: { id: string } }) {
+  const { id } = context.params;
   try {
     await prisma.oap.delete({ where: { id } });
     return NextResponse.json({ ok: true });
