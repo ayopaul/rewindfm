@@ -2,15 +2,23 @@
 import { PrismaClient } from "@prisma/client";
 import ScheduleAdminClient from "@/components/ScheduleAdminClient";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 const prisma = new PrismaClient();
 
 export const metadata = { title: "Schedule · Admin · Rewind FM" };
 
 export default async function AdminSchedulePage() {
-  const shows = await prisma.show.findMany({
-    orderBy: { title: "asc" },
-    select: { id: true, title: true },
-  });
+  let shows: { id: string; title: string }[] = [];
+  try {
+    shows = await prisma.show.findMany({
+      orderBy: { title: "asc" },
+      select: { id: true, title: true },
+    });
+  } catch (e) {
+    console.error("Failed to load shows for admin schedule:", e);
+  }
 
   return (
     <main className="mx-auto max-w-screen-2xl px-4 md:px-6 py-8 text-black">

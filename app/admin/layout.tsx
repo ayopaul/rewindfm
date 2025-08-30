@@ -1,6 +1,7 @@
 //app/admin/layout.tsx
 
 import Link from "next/link";
+import { Suspense } from "react";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   async function logout() {
@@ -96,9 +97,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </header>
 
       {/* Page content */}
-      <main className="mx-auto max-w-screen-2xl px-4 md:px-6 py-6 text-white">
-        {children}
-      </main>
+      <Suspense fallback={null}>
+        <main className="mx-auto max-w-screen-2xl px-4 md:px-6 py-6 text-white">
+          {children}
+        </main>
+      </Suspense>
     </section>
   );
 }

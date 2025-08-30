@@ -2,17 +2,23 @@
 import { PrismaClient } from "@prisma/client";
 import ShowsAdminClient from "../../../components/ShowsAdminClient";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 const prisma = new PrismaClient();
 
 export const metadata = { title: "Shows · Admin · Rewind FM" };
 
 export default async function AdminShowsPage() {
-  // Preload shows for SSR-first render (optional – UI also re-fetches)
-  const shows = await prisma.show.findMany({
-    orderBy: { title: "asc" },
-    // Remove imageUrl from select since it doesn't exist in your current schema
-    select: { id: true, title: true, description: true },
-  });
+  let shows: { id: string; title: string; description: string | null }[] = [];
+  try {
+    shows = await prisma.show.findMany({
+      orderBy: { title: "asc" },
+      select: { id: true, title: true, description: true },
+    });
+  } catch (e) {
+    console.error("Failed to preload shows for admin SSR:", e);
+  }
 
   // Make the prop shape compatible with ShowsAdminClient (which expects imageUrl)
   const initialShows = shows.map((s) => ({ ...s, imageUrl: null }));

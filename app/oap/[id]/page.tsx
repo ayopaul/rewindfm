@@ -30,11 +30,12 @@ function normalizeSocial(value: string | null | undefined, kind: "twitter" | "in
   return { url: base + v, label: `@${v}` };
 }
 
-type Params = { params: { id: string } };
+type Params = { params: Promise<{ id: string }> };
 
 export async function generateMetadata({ params }: Params) {
+  const { id } = await params;
   const oap = await prisma.oap.findUnique({
-    where: { id: params.id },
+    where: { id },
     select: { name: true, role: true },
   });
   if (!oap) return { title: "OAP · Rewind FM" };
@@ -42,9 +43,10 @@ export async function generateMetadata({ params }: Params) {
 }
 
 export default async function OapDetailPage({ params }: Params) {
+  const { id } = await params;
   // Align fields with your schema (name, role, bio, imageUrl, socials, etc.)
   const raw = await prisma.oap.findUnique({
-    where: { id: params.id },
+    where: { id },
     select: {
       id: true,
       name: true,

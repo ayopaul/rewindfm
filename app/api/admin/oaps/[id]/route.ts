@@ -2,7 +2,7 @@
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { Prisma } from "@prisma/client";
 import prisma from "@/lib/prisma";
 
@@ -27,8 +27,11 @@ function buildUpdateData(body: Record<string, unknown>) {
 }
 
 // Update an OAP
-export async function PUT(req: import('next/server').NextRequest, context: { params: { id: string } }) {
-  const { id } = context.params;
+export async function PUT(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
   try {
     const body = await req.json().catch(() => ({}));
     const data = buildUpdateData(body);
@@ -68,8 +71,11 @@ export async function PUT(req: import('next/server').NextRequest, context: { par
 }
 
 // Delete an OAP
-export async function DELETE(_req: import('next/server').NextRequest, context: { params: { id: string } }) {
-  const { id } = context.params;
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
   try {
     await prisma.oap.delete({ where: { id } });
     return NextResponse.json({ ok: true });

@@ -2,13 +2,22 @@
 import { PrismaClient } from "@prisma/client";
 import SettingsAdminClient from "@/components/SettingsAdminClient";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 const prisma = new PrismaClient();
 
 export const metadata = { title: "Settings · Admin · Rewind FM" };
 
 export default async function AdminSettingsPage() {
   // Use a temporary cast in case Prisma Client hasn't been regenerated yet.
-  const settings = await prisma.settings.findFirst();
+  let settings = null as Awaited<ReturnType<typeof prisma.settings.findFirst>> | null;
+  try {
+    settings = await prisma.settings.findFirst();
+  } catch (e) {
+    console.error("Failed to load admin settings during render:", e);
+    settings = null;
+  }
 
   return (
     <main className="mx-auto max-w-screen-2xl px-4 md:px-6 py-8 text-black">
