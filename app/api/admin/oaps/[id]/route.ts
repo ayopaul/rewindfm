@@ -15,7 +15,7 @@ function sanitize<T>(v: T) {
   return v;
 }
 
-function buildUpdateData(body: any) {
+function buildUpdateData(body: Record<string, unknown>) {
   const data: Record<string, unknown> = {};
   if ("name" in body) data.name = sanitize(body.name);
   if ("role" in body) data.role = sanitize(body.role);
@@ -50,17 +50,18 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
 
     await prisma.oap.update({ where: { id }, data });
     return NextResponse.json({ ok: true });
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const error = err as Error;
     if (
-      err instanceof Prisma.PrismaClientKnownRequestError &&
-      err.code === "P2025"
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2025"
     ) {
       // Record not found
       return NextResponse.json({ error: "OAP not found." }, { status: 404 });
     }
-    console.error("PUT /api/admin/oaps/[id]", err);
+    console.error("PUT /api/admin/oaps/[id]", error);
     return NextResponse.json(
-      { error: err?.message || "Failed to update OAP" },
+      { error: error?.message || "Failed to update OAP" },
       { status: 500 }
     );
   }
@@ -75,16 +76,17 @@ export async function DELETE(
   try {
     await prisma.oap.delete({ where: { id } });
     return NextResponse.json({ ok: true });
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const error = err as Error;
     if (
-      err instanceof Prisma.PrismaClientKnownRequestError &&
-      err.code === "P2025"
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2025"
     ) {
       return NextResponse.json({ error: "OAP not found." }, { status: 404 });
     }
-    console.error("DELETE /api/admin/oaps/[id]", err);
+    console.error("DELETE /api/admin/oaps/[id]", error);
     return NextResponse.json(
-      { error: err?.message || "Failed to delete OAP" },
+      { error: error?.message || "Failed to delete OAP" },
       { status: 500 }
     );
   }

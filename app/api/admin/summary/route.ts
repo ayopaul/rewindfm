@@ -13,10 +13,17 @@ export async function GET() {
       prisma.scheduleSlot.count(),
     ]);
     return NextResponse.json({ oaps, shows, schedule, posts: 0 });
-  } catch (err: any) {
+  } catch (err: unknown) {
+    if (err instanceof Error) {
+      console.error("GET /api/admin/summary", err.message);
+      return NextResponse.json(
+        { error: err.message },
+        { status: 500 }
+      );
+    }
     console.error("GET /api/admin/summary", err);
     return NextResponse.json(
-      { error: err?.message || "Failed to load summary" },
+      { error: "Failed to load summary" },
       { status: 500 }
     );
   }

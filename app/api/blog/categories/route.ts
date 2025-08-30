@@ -5,24 +5,44 @@ const prisma = new PrismaClient();
 
 export const dynamic = "force-dynamic";
 
+// Minimal shape we need from a Prisma model for this endpoint
+type PostModel = {
+  findMany: (args: {
+    select: { category: true };
+    where: { category: { not: null } };
+  }) => Promise<Array<{ category: string | null }>>;
+};
+
+// Narrow unknown to PostModel safely (no `any`)
+function isPostModel(x: unknown): x is PostModel {
+  if (typeof x !== "object" || x === null) return false;
+  const maybe = x as { findMany?: unknown };
+  return typeof maybe.findMany === "function";
+}
+
 export async function GET() {
   try {
-    // Support either `blogPost` or `post` model names
-    const model: any = (prisma as any).blogPost ?? (prisma as any).post;
-    if (!model) {
+    // Support either `blogPost` or `post` model names without `any`
+    const candidate =
+      (prisma as unknown as Record<string, unknown>).blogPost ??
+      (prisma as unknown as Record<string, unknown>).post;
+
+    if (!isPostModel(candidate)) {
       return NextResponse.json({ categories: [] });
     }
 
-    const cats = (await model.findMany({
+    const cats = await candidate.findMany({
       select: { category: true },
       where: { category: { not: null } },
-    })) as { category: string | null }[];
+    });
 
     const raw: string[] = cats
-      .map((c: { category: string | null }) => c.category)
-      .filter((v: string | null): v is string => Boolean(v));
+      .map((c) => c.category)
+      .filter((v): v is string => Boolean(v));
 
-    const unique = Array.from(new Map(raw.map((c) => [c.toLowerCase(), c])).values());
+    const unique = Array.from(
+      new Map(raw.map((c) => [c.toLowerCase(), c])).values()
+    );
 
     // Prepend "All" so UI always has a catch‑all option
     return NextResponse.json({ categories: ["All", ...unique] });

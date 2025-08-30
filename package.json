@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev -p 3004",
     "build": "prisma generate && next build",
+    "build:no-lint": "SKIP_ENV_VALIDATION=true next build",
     "start": "next start -p 3004",
     "lint": "eslint"
     

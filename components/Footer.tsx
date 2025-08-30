@@ -1,4 +1,4 @@
-
+import Link from "next/link";
 
 export default function Footer() {
   return (
@@ -12,21 +12,21 @@ export default function Footer() {
             aria-label="Footer"
             className="flex flex-wrap gap-4 text-sm text-white/70"
           >
-            <a href="/#weekday" className="hover:text-white">
+            <Link href="/#weekday" className="hover:text-white">
               Weekday
-            </a>
-            <a href="/#weekend" className="hover:text-white">
+            </Link>
+            <Link href="/#weekend" className="hover:text-white">
               Weekend
-            </a>
-            <a href="/blog" className="hover:text-white">
+            </Link>
+            <Link href="/blog" className="hover:text-white">
               Blog
-            </a>
-            <a href="/#oaps" className="hover:text-white">
+            </Link>
+            <Link href="/#oaps" className="hover:text-white">
               OAPs
-            </a>
-            <a href="/about" className="hover:text-white">
+            </Link>
+            <Link href="/about" className="hover:text-white">
               About
-            </a>
+            </Link>
           </nav>
         </div>
       </div>

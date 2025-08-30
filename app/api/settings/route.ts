@@ -21,7 +21,7 @@ export async function GET() {
       ok: true,
       streamUrl,
     });
-  } catch (e) {
+  } catch {
     return NextResponse.json({ ok: false, streamUrl: "" }, { status: 500 });
   }
 }

@@ -1,6 +1,37 @@
 // app/api/lineup/route.ts
+
 import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
+
+type JoinedOap = {
+  id: string;
+  name: string;
+  imageUrl: string | null;
+};
+
+type JoinedShow = {
+  id: string;
+  title: string;
+  description: string | null;
+  imageUrl: string | null;
+  oaps: { oap: JoinedOap }[];
+};
+
+type ShowPayload = {
+  id: string;
+  title: string;
+  description: string | null;
+  imageUrl: string | null;
+  startMin: number;
+  endMin: number;
+  oaps: { id: string; name: string; avatarUrl: string | null }[];
+};
+
+type DayPayload = {
+  key: string;
+  label: string;
+  shows: ShowPayload[];
+};
 
 const prisma = new PrismaClient();
 
@@ -38,25 +69,26 @@ export async function GET() {
       6: { key: "sat", label: "Saturday" },
     };
 
-    const days: Record<string, { key: string; label: string; shows: any[] }> = {};
+    const days: Record<string, DayPayload> = {} as Record<string, DayPayload>;
     Object.values(dayMap).forEach((d) => {
-      days[d.key] = { key: d.key, label: d.label, shows: [] };
+      days[d.key] = { key: d.key, label: d.label, shows: [] as ShowPayload[] };
     });
 
     for (const slot of slots) {
       const { key } = dayMap[slot.dayOfWeek];
-      if (slot.show) {
+      const show = slot.show as unknown as JoinedShow | null;
+      if (show) {
         days[key].shows.push({
-          id: slot.show.id,
-          title: slot.show.title,
-          description: slot.show.description,
-          imageUrl: (slot.show as any).imageUrl ?? null, // ensure optional
+          id: show.id,
+          title: show.title,
+          description: show.description,
+          imageUrl: show.imageUrl,
           startMin: slot.startMin,
           endMin: slot.endMin,
-          oaps: slot.show.oaps.map((os) => ({
-            id: os.oap.id,
-            name: os.oap.name,
-            avatarUrl: (os.oap as any).imageUrl ?? null, // fix: no photoUrl
+          oaps: show.oaps.map(({ oap }) => ({
+            id: oap.id,
+            name: oap.name,
+            avatarUrl: oap.imageUrl ?? null,
           })),
         });
       }

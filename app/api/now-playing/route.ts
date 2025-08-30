@@ -23,7 +23,7 @@ export async function GET() {
     // Defaults
     let title = "Rewind Radio";
     let subtitle = "Live on Rewind.";
-    let image = "/media/placeholder/vinyl-thumb.jpg"; // adjust when you add artwork
+    const image = "/media/placeholder/vinyl-thumb.jpg"; // adjust when you add artwork
     const streamUrl = process.env.NEXT_PUBLIC_STREAM_URL || "";
 
     // If a slot is found, fetch the show

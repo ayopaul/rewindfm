@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { PrismaClient } from "@prisma/client";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import Link from "next/link";
 
 const prisma = new PrismaClient();
 
@@ -71,8 +72,8 @@ export default async function OapDetailPage({ params }: Params) {
     role: raw.role ?? null,
     imageUrl: raw.imageUrl ?? null,
     bio: raw.bio ?? null,
-    twitter: (raw as any).twitter ?? null,
-    instagram: (raw as any).instagram ?? null,
+    twitter: raw.twitter ?? null,
+    instagram: raw.instagram ?? null,
   };
 
   if (!oap) return notFound();
@@ -83,15 +84,12 @@ export default async function OapDetailPage({ params }: Params) {
       <main className="mx-auto max-w-7xl px-4 md:px-8 py-10 bg-[#FFFEF1] bg-[url('/media/5df82e05767bad4244dc8b5c_expanded-texture.gif')] bg-repeat text-black">
         {/* Breadcrumb/back */}
         <div className="mb-6">
-          <a
-            href="/oap"
-            className="inline-flex items-center gap-2 text-black hover:opacity-80"
-          >
+          <Link href="/oap" className="inline-flex items-center gap-2 text-black hover:opacity-80">
             <svg width="18" height="18" viewBox="0 0 24 24">
               <path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2" fill="none" />
             </svg>
             Back to OAPs
-          </a>
+          </Link>
         </div>
 
         <article className="grid gap-10 lg:grid-cols-12">
