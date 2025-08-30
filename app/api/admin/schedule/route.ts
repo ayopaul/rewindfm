@@ -11,7 +11,7 @@ export async function GET() {
       include: { show: { select: { id: true, title: true } } },
     });
     return NextResponse.json({ items });
-  } catch {
+  } catch (e) {
     return NextResponse.json({ error: "Failed to load schedule" }, { status: 500 });
   }
 }
@@ -53,9 +53,8 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json({ ok: true, id: created.id });
-  } catch (err: unknown) {
-    const error = err as Error;
+  } catch (e: any) {
     // Unique/overlap checks can be added later; keep MVP simple
-    return NextResponse.json({ error: error.message || "Unable to create slot" }, { status: 500 });
+    return NextResponse.json({ error: "Unable to create slot" }, { status: 500 });
   }
 }

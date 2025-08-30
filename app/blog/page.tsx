@@ -1,4 +1,3 @@
-// app/blog/page.tsx
 import Link from "next/link";
 import prisma from "@/lib/prisma";
 // IMPORTANT: ensure CategoryScroller is imported
@@ -49,13 +48,10 @@ async function fetchPosts(params: { page: number; category?: string | null }): P
   return { posts, total };
 }
 
-export default async function BlogPage({
-  searchParams,
-}: {
-  searchParams: { page?: string; category?: string };
-}) {
-  const page = Math.max(1, Number(searchParams.page || 1));
-  const activeCategory = (searchParams.category || "All").trim();
+export default async function BlogPage({ searchParams }: { searchParams: Promise<{ page?: string; category?: string }> }) {
+  const { page: pageParam, category } = await searchParams;
+  const page = Math.max(1, Number(pageParam || 1));
+  const activeCategory = (category || "All").trim();
 
   const { posts, total } = await fetchPosts({ page, category: activeCategory });
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));

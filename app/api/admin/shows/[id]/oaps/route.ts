@@ -9,7 +9,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   try {
     const links = await prisma.oapOnShow.findMany({
       where: { showId: id },
-      select: { oapId: true, role: true, oap: { select: { id: true, name: true, photoUrl: true } } },
+      select: { oapId: true, role: true, oap: { select: { id: true, name: true, imageUrl: true } } },
       orderBy: { oap: { name: "asc" } },
     });
     return NextResponse.json({ items: links });

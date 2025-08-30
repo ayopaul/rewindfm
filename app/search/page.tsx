@@ -4,13 +4,10 @@ import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
-export default async function SearchPage({
-  searchParams,
-}: {
-  searchParams: { q?: string };
-}) {
-  const q = (searchParams.q || "").trim();
-  if (q.length < 2) {
+export default async function SearchPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
+  const { q } = await searchParams;
+  const qStr = (q || "").trim();
+  if (qStr.length < 2) {
     return (
       <div
         className="min-h-screen text-black"
@@ -34,15 +31,15 @@ export default async function SearchPage({
 
   const [oaps, shows, posts] = await Promise.all([
     prisma.oap.findMany({
-      where: { name: { contains: q } }, // removed mode
+      where: { name: { contains: qStr } }, // removed mode
       select: { id: true, name: true, imageUrl: true },
       take: 20,
     }),
     prisma.show.findMany({
       where: {
         OR: [
-          { title: { contains: q } },        // removed mode
-          { description: { contains: q } },  // removed mode
+          { title: { contains: qStr } },        // removed mode
+          { description: { contains: qStr } },  // removed mode
         ],
       },
       select: { id: true, title: true, imageUrl: true },
@@ -52,8 +49,8 @@ export default async function SearchPage({
     prisma.post?.findMany?.({
       where: {
         OR: [
-          { title: { contains: q } },   // removed mode
-          { excerpt: { contains: q } }, // removed mode
+          { title: { contains: qStr } },   // removed mode
+          { excerpt: { contains: qStr } }, // removed mode
         ],
       },
       select: { id: true, title: true, image: true },
@@ -74,7 +71,7 @@ export default async function SearchPage({
     >
       <div className="sticky top-0 z-10 border-b border-black bg-[#FBB63B] p-4">
         <h1 className="text-xl md:text-2xl font-bold">
-          Search results for “{q}”
+          Search results for “{qStr}”
         </h1>
       </div>
       <main className="mx-auto max-w-4xl px-4 py-6 space-y-8">

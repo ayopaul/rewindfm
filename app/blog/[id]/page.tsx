@@ -1,6 +1,6 @@
 // app/blog/[id]/page.tsx
 
-
+import type React from 'react';
 
 import Image from "next/image";
 import { notFound } from "next/navigation";
@@ -47,14 +47,16 @@ function getPostById(id: string) {
   return posts.find((p) => p.id === id) || null;
 }
 
-export function generateMetadata({ params }: { params: { id: string } }) {
-  const post = getPostById(params.id);
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const post = getPostById(id);
   if (!post) return { title: "Post · Rewind FM" };
   return { title: `${post.title} · Rewind FM`, description: post.excerpt };
 }
 
-export default async function BlogDetailPage({ params }: { params: { id: string } }) {
-  const post = getPostById(params.id);
+export default async function BlogDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const post = getPostById(id);
   if (!post) notFound();
 
 

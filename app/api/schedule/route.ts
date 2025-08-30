@@ -8,11 +8,18 @@ const prisma = new PrismaClient();
  */
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
-  const slug = searchParams.get("station") ?? "rewind-fm";
   const day = searchParams.get("day");
+  // Support either ?stationId=... or legacy ?station=... passing an id
+  const stationIdParam = searchParams.get("stationId") ?? searchParams.get("station") ?? undefined;
 
-  const station = await prisma.station.findUnique({ where: { slug } });
-  if (!station) return NextResponse.json({ error: "Station not found" }, { status: 404 });
+  // Resolve station by id if provided; otherwise pick the first station (single-station setup)
+  const station = stationIdParam
+    ? await prisma.station.findUnique({ where: { id: stationIdParam } })
+    : await prisma.station.findFirst();
+
+  if (!station) {
+    return NextResponse.json({ error: "Station not found" }, { status: 404 });
+  }
 
   const where = { stationId: station.id, ...(day ? { dayOfWeek: Number(day) } : {}) };
 
