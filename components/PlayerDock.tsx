@@ -8,7 +8,7 @@ export default function PlayerDock() {
 
   // This stream url is the default when opening the site
   const fallbackUrl =
-    process.env.NEXT_PUBLIC_STREAM_URL || "https://example.com/stream.mp3";
+    process.env.NEXT_PUBLIC_STREAM_URL || "https://rewindfm-atunwadigital.streamguys1.com/rewindfm";
 
   const onPlay = () => play(now?.url ?? fallbackUrl, now);
   const onStop = () => stop();

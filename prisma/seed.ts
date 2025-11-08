@@ -14,7 +14,7 @@ async function getOrCreateOap(name: string, role?: string) {
 }
 
 async function main() {
-  console.log("🌱 Seeding database...");
+  console.log(" Seeding database...");
 
   // 1. Create or get Station
   let station = await prisma.station.findFirst();
