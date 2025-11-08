@@ -2,11 +2,16 @@
 
 import Link from "next/link";
 import { Suspense } from "react";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   async function logout() {
     "use server";
-    await fetch("/api/admin/logout", { method: "POST" });
+    const cookieStore = await cookies();
+    const cookieName = process.env.ADMIN_COOKIE_NAME || "rewind_admin";
+    cookieStore.delete(cookieName);
+    redirect("/admin/login");
   }
 
   return (
@@ -83,9 +88,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </Link>
               <form action={logout} className="inline">
                 <button
+                  type="submit"
                   className="inline-flex items-center px-4 py-2 bg-white border border-black text-black text-[23px]"
-                  formAction="/api/admin/logout"
-                  formMethod="post"
                   style={{ fontFamily: "'Neue Power', sans-serif", fontWeight: 800 }}
                 >
                   Logout
