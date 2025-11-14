@@ -4,7 +4,7 @@
 import { useAudio } from "./AudioProvider";
 
 export default function PlayerDock() {
-  const { isPlaying, now, play, stop, volume, setVolume } = useAudio();
+  const { isPlaying, isMuted, now, play, stop, volume, setVolume } = useAudio();
 
   // This stream url is the default when opening the site
   const fallbackUrl =
@@ -29,26 +29,49 @@ export default function PlayerDock() {
           </div>
         </div>
 
-        {/* Controls – wire into context; keep your icons/markup */}
+        {/* Controls – SHOW UNMUTE BUTTON WHEN MUTED */}
         <div className="flex items-center gap-4">
-          <button
-            aria-label={isPlaying ? "Stop" : "Play"}
-            onClick={isPlaying ? onStop : onPlay}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full shadow-[3px_3px_0_0_rgba(0,0,0,0.6)] bg-[#F24D3D] text-white"
-          >
-            {isPlaying ? "■" : "►"}
-          </button>
+          {isMuted && isPlaying ? (
+            /* Prominent Unmute Button - Matches Hero style */
+            <button
+              onClick={() => {
+                const audio = document.querySelector('audio');
+                if (audio) {
+                  audio.muted = false;
+                  // Trigger click event to activate the unmute listeners
+                  const clickEvent = new MouseEvent('click', { bubbles: true });
+                  document.dispatchEvent(clickEvent);
+                }
+              }}
+              aria-label="Unmute to hear audio"
+              title="Tap to hear the radio"
+              className="inline-flex h-10 px-5 items-center justify-center shadow-[3px_3px_0_0_rgba(0,0,0,0.6)] bg-[#F0C419] text-black font-semibold text-sm"
+            >
+              🔊 Tap to Unmute
+            </button>
+          ) : (
+            <>
+              <button
+                aria-label={isPlaying ? "Stop" : "Play"}
+                onClick={isPlaying ? onStop : onPlay}
+                className="inline-flex h-10 w-10 items-center rounded-full justify-center shadow-[3px_3px_0_0_rgba(0,0,0,0.6)] bg-[#F24D3D] text-white text-lg"
+              >
+                {isPlaying ? "■" : "▶"}
+              </button>
 
-          {/* Simple volume control (optional; keep your own UI if you already have one) */}
-          <input
-            aria-label="Volume"
-            type="range"
-            min={0}
-            max={1}
-            step={0.01}
-            value={volume}
-            onChange={(e) => setVolume(Number(e.target.value))}
-          />
+              {/* Simple volume control */}
+              <input
+                aria-label="Volume"
+                type="range"
+                min={0}
+                max={1}
+                step={0.01}
+                value={volume}
+                onChange={(e) => setVolume(Number(e.target.value))}
+                className="w-24"
+              />
+            </>
+          )}
         </div>
       </div>
     </div>
