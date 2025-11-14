@@ -1,6 +1,7 @@
 "use client";
 import Image from "next/image";
 import React from "react";
+import { useAudio } from "./AudioProvider";
 
 type HeroProps = {
   showTitle?: string;
@@ -12,27 +13,24 @@ type HeroProps = {
 };
 
 /**
- * Hero
- * - Static assets come from /public/media (never change at runtime)
- * - Dynamic thumbnail (current show) is provided via props (DB/upload URL), with a safe fallback
- * - Play/Pause/Stop controls manage the HTMLAudioElement + AudioContext (user gesture gated)
+ * Hero - NOW SYNCHRONIZED with PlayerDock via AudioProvider
+ * - Both players control the same audio element
+ * - Vinyl spins when either player is active
+ * - Play/pause state synced across both players
  */
 export default function Hero({
   showTitle = "The Afrobeat Hour",
   showSubtitle = "Classic Afrobeat and iconic Nigerian music.",
-  showThumbUrl = "/now-playing-thumb.jpg", // TODO: replace with /media/rewind-fm/... from DB
+  showThumbUrl = "/now-playing-thumb.jpg",
   streamUrl = process.env.NEXT_PUBLIC_STREAM_URL || "",
 }: HeroProps) {
-  const audioRef = React.useRef<HTMLAudioElement | null>(null);
-  const audioCtxRef = React.useRef<AudioContext | null>(null);
-  const [isPlaying, setIsPlaying] = React.useState(false);
-  const [isPaused, setIsPaused] = React.useState(false);
+  // USE AUDIO CONTEXT INSTEAD OF LOCAL STATE
+  const { isPlaying, isMuted, play, stop, now } = useAudio();
+  
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
-
-  // Resolved stream URL (props/env or fetched from settings)
   const [resolvedStream, setResolvedStream] = React.useState<string>(streamUrl || "");
 
-  // If streamUrl prop/env is empty, fetch from /api/settings once on mount
+  // Fetch stream URL if not provided
   React.useEffect(() => {
     let active = true;
     if (!streamUrl) {
@@ -48,7 +46,7 @@ export default function Hero({
             }
           }
         } catch {
-          // ignore network errors; we will show a friendly message on play
+          // ignore network errors
         }
       })();
     }
@@ -57,41 +55,19 @@ export default function Hero({
     };
   }, [streamUrl]);
 
-  // Build audio lazily on first interaction
-  const ensureAudio = React.useCallback(async () => {
+  // Handle play - uses shared audio context
+  const handlePlay = React.useCallback(async () => {
     const url = resolvedStream?.trim();
     if (!url) {
       setErrorMsg("No stream configured");
-      return null;
+      return;
     }
-    if (!audioRef.current) {
-      const el = new Audio(url);
-      el.crossOrigin = "anonymous"; // harmless if same-origin, enables analyzer later
-      el.preload = "none";
-      el.loop = false;
-      audioRef.current = el;
-    }
-    if (!audioCtxRef.current && typeof window !== "undefined") {
-      try {
-        audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
-      } catch {
-        // ignore; playback still works without context
-      }
-    }
-    return audioRef.current;
-  }, [resolvedStream]);
-
-  const play = React.useCallback(async () => {
-    const el = await ensureAudio();
-    if (!el) return;
     try {
-      // resume if needed (Chrome auto policy)
-      const ctx = audioCtxRef.current;
-      if (ctx && ctx.state === "suspended") await ctx.resume();
-
-      await el.play();
-      setIsPlaying(true);
-      setIsPaused(false);
+      await play(url, {
+        title: showSubtitle,
+        showTitle: showTitle,
+        artwork: showThumbUrl,
+      });
       setErrorMsg(null);
     } catch (e: any) {
       const msg =
@@ -100,44 +76,12 @@ export default function Hero({
           : e?.message ?? "Playback failed";
       setErrorMsg(msg);
     }
-  }, [ensureAudio]);
+  }, [resolvedStream, play, showTitle, showSubtitle, showThumbUrl]);
 
-  const pause = React.useCallback(() => {
-    const el = audioRef.current;
-    if (!el) return;
-    el.pause();
-    setIsPaused(true);
-    setIsPlaying(false);
-  }, []);
-
-  const stop = React.useCallback(() => {
-    const el = audioRef.current;
-    if (!el) return;
-    el.pause();
-    try {
-      el.currentTime = 0;
-    } catch {
-      // some live streams don't allow seeking; ignore
-    }
-    setIsPaused(false);
-    setIsPlaying(false);
-  }, []);
-
-  // Cleanup on unmount
-  React.useEffect(() => {
-    return () => {
-      const el = audioRef.current;
-      if (el) {
-        el.pause();
-        audioRef.current = null;
-      }
-      const ctx = audioCtxRef.current;
-      if (ctx) {
-        ctx.close().catch(() => {});
-        audioCtxRef.current = null;
-      }
-    };
-  }, []);
+  // Handle stop - uses shared audio context
+  const handleStop = React.useCallback(() => {
+    stop();
+  }, [stop]);
 
   return (
     <section className="text-white lg:h-[80vh] overflow-hidden">
@@ -153,11 +97,11 @@ export default function Hero({
               className="font-extrabold leading-[0.92] [text-wrap:balance]"
               style={{ fontSize: "clamp(2.75rem, 6.2vw, 5.75rem)" }}
             >
-              Yo! We’re
+              Yo! We're
               <br />
               all about that <span className="text-[#1092A4]">Rewind Vibe.</span>
               <br />
-              Let’s jam.
+              Let's jam.
             </p>
           </div>
 
@@ -194,52 +138,61 @@ export default function Hero({
                 ) : null}
               </div>
 
-              {/* transport */}
+              {/* transport - SHOW UNMUTE BUTTON WHEN MUTED */}
               <div className="flex items-center gap-2 sm:gap-3">
-                {/* stop */}
-                <button
-                  type="button"
-                  onClick={stop}
-                  aria-label="Stop"
-                  title="Stop"
-                  className="grid h-9 w-9 place-items-center rounded-full bg-[#E34C4C] text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-black/30"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M6 6h12v12H6z" />
-                  </svg>
-                </button>
-                {/* play/pause toggle */}
-                {isPlaying ? (
-                  <button
-                    type="button"
-                    onClick={pause}
-                    aria-label="Pause"
-                    title="Pause"
-                    className="grid h-9 w-9 place-items-center rounded-full bg-[#F0C419] text-black shadow-sm focus:outline-none focus:ring-2 focus:ring-black/30"
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M6 5h4v14H6zm8 0h4v14h-4z" />
-                    </svg>
-                  </button>
-                ) : (
+                {isMuted && isPlaying ? (
+                  /* Prominent Unmute Button - Replaces play/stop controls */
                   <button
                     type="button"
                     onClick={() => {
-                      if (!resolvedStream) {
-                        setErrorMsg("No stream configured");
-                        return;
+                      const audio = document.querySelector('audio');
+                      if (audio) {
+                        audio.muted = false;
+                        // Trigger click event to activate the unmute listeners
+                        const clickEvent = new MouseEvent('click', { bubbles: true });
+                        document.dispatchEvent(clickEvent);
                       }
-                      void play();
                     }}
-                    aria-label="Play"
-                    title={resolvedStream ? "Play" : "No stream configured"}
-                    disabled={!resolvedStream}
-                    className="grid h-9 w-9 place-items-center rounded-full bg-[#F0C419] text-black shadow-sm focus:outline-none focus:ring-2 focus:ring-black/30"
+                    aria-label="Unmute to hear audio"
+                    title="Tap to hear the radio"
+                    className="grid h-9 px-4 place-items-center bg-[#F0C419] text-black font-semibold text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-black/30 whitespace-nowrap"
                   >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M8 5v14l11-7z" />
-                    </svg>
+                    🔊 Tap to Unmute
                   </button>
+                ) : (
+                  <>
+                    {/* stop */}
+                    <button
+                      type="button"
+                      onClick={handleStop}
+                      aria-label="Stop"
+                      title="Stop"
+                      className="grid h-9 w-9 rounded-full place-items-center bg-[#E34C4C] text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-black/30"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M6 6h12v12H6z" />
+                      </svg>
+                    </button>
+                    {/* play button - single button that reflects global state */}
+                    <button
+                      type="button"
+                      onClick={isPlaying ? handleStop : handlePlay}
+                      aria-label={isPlaying ? "Pause" : "Play"}
+                      title={isPlaying ? "Pause" : (resolvedStream ? "Play" : "No stream configured")}
+                      disabled={!resolvedStream}
+                      className="grid h-9 w-9 rounded-full place-items-center bg-[#F0C419] text-black shadow-sm focus:outline-none focus:ring-2 focus:ring-black/30"
+                    >
+                      {isPlaying ? (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M6 5h4v14H6zm8 0h4v14h-4z" />
+                        </svg>
+                      ) : (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M8 5v14l11-7z" />
+                        </svg>
+                      )}
+                    </button>
+                  </>
                 )}
               </div>
             </div>
@@ -260,10 +213,10 @@ export default function Hero({
 
           {/* overlays */}
           <div aria-hidden className="pointer-events-none absolute inset-0">
-            {/* Vinyl (static SVG) with spin when playing */}
+            {/* Vinyl (static SVG) with spin when playing - NOW SYNCED */}
             <div className="absolute left-1/2 top-1/2 h-[68%] w-[68%] -translate-x-1/2 -translate-y-1/2">
               <div className="relative h-full w-full rounded-full">
-                {/* spinner wrapper to avoid rotating the center label container */}
+                {/* spinner wrapper - RESPONDS TO GLOBAL isPlaying STATE */}
                 <div
                   className={
                     "absolute inset-0 rounded-full " +
@@ -292,11 +245,11 @@ export default function Hero({
               </div>
             </div>
 
-            {/* Tonearm (static SVG) — tilt slightly when playing */}
+            {/* Tonearm (static SVG) - RESPONDS TO GLOBAL isPlaying STATE */}
             <div
               className={
-                "absolute right-[6%] top-[14%] h-[62%] w-[14%] origin-[10%_15%] transition-transform duration-300 " +
-                (isPlaying ? "rotate-[6deg]" : "rotate-0")
+                "absolute right-[6%] top-[14%] h-[62%] w-[14%] origin-[10%_15%] transition-transform duration-500 " +
+                (isPlaying ? "rotate-[25deg]" : "rotate-0")
               }
             >
               <Image

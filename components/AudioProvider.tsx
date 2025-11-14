@@ -13,6 +13,7 @@ type NowPlaying = {
 type AudioContextShape = {
   isReady: boolean;
   isPlaying: boolean;
+  isMuted: boolean;
   now?: NowPlaying;
   volume: number;
   play: (url: string, meta?: Omit<NowPlaying, "url">) => Promise<void>;
@@ -32,33 +33,135 @@ export const AudioProvider: React.FC<React.PropsWithChildren> = ({ children }) =
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
   const [isReady, setReady] = React.useState(false);
   const [isPlaying, setPlaying] = React.useState(false);
+  const [isMuted, setMuted] = React.useState(false);
   const [now, setNow] = React.useState<NowPlaying | undefined>(undefined);
   const [volume, setVolumeState] = React.useState<number>(() => {
-    const v = typeof window !== "undefined" ? localStorage.getItem("rfm:vol") : null;
+    if (typeof window === "undefined") return 1;
+    const v = localStorage.getItem("rfm:vol");
     return v ? Number(v) : 1;
   });
 
-  // create audio element once on mount
+  // Create audio element and setup autoplay - ALL IN ONE EFFECT
   React.useEffect(() => {
+    console.log("🎵 AudioProvider mounted - initializing audio element");
+    
+    // Create audio element
     const a = new Audio();
     a.preload = "none";
     a.crossOrigin = "anonymous";
     a.volume = volume;
-    a.addEventListener("canplay", () => setReady(true));
-    a.addEventListener("play", () => setPlaying(true));
-    a.addEventListener("pause", () => setPlaying(false));
-    a.addEventListener("ended", () => setPlaying(false));
-    a.addEventListener("error", () => {
+    
+    console.log("🔊 Audio element created, volume:", volume);
+    
+    // Setup event listeners for state synchronization
+    const handleCanPlay = () => {
+      console.log("✓ Audio can play");
+      setReady(true);
+    };
+    const handlePlay = () => {
+      console.log("▶ Audio playing");
+      setPlaying(true);
+    };
+    const handlePause = () => {
+      console.log("⏸ Audio paused");
+      setPlaying(false);
+    };
+    const handleEnded = () => {
+      console.log("⏹ Audio ended");
+      setPlaying(false);
+    };
+    const handleError = (e: Event) => {
+      console.error("❌ Audio error:", e);
       setPlaying(false);
       setReady(false);
-      // keep the element but clear meta so UI can show an error state if you want
-    });
+    };
+    
+    a.addEventListener("canplay", handleCanPlay);
+    a.addEventListener("play", handlePlay);
+    a.addEventListener("pause", handlePause);
+    a.addEventListener("ended", handleEnded);
+    a.addEventListener("error", handleError);
+    
     audioRef.current = a;
+    
+    // AUTOPLAY: Start playing immediately
+    const defaultUrl = process.env.NEXT_PUBLIC_STREAM_URL || 
+                       "https://rewindfm-atunwadigital.streamguys1.com/rewindfm";
+    
+    console.log("🌐 Stream URL:", defaultUrl);
+    
+    if (defaultUrl) {
+      // Small delay to ensure audio element is fully initialized
+      const autoplayTimer = setTimeout(async () => {
+        console.log("⏰ Autoplay timer fired, attempting to play...");
+        try {
+          a.src = defaultUrl;
+          console.log("📡 Audio src set to:", defaultUrl);
+          
+          // Start MUTED to bypass browser autoplay restrictions
+          a.muted = true;
+          setMuted(true);
+          console.log("🔇 Starting muted to bypass autoplay block");
+          
+          await a.play();
+          
+          setNow({ 
+            url: defaultUrl, 
+            title: "Live Stream",
+            showTitle: "Rewind FM" 
+          });
+          
+          console.log("✅ Autoplay started successfully (muted)");
+          
+          // Auto-unmute on ANY user interaction
+          const unmuteOnInteraction = () => {
+            console.log("👆 User interaction detected - unmuting audio");
+            a.muted = false;
+            setMuted(false);
+            document.removeEventListener('click', unmuteOnInteraction);
+            document.removeEventListener('touchstart', unmuteOnInteraction);
+            document.removeEventListener('keydown', unmuteOnInteraction);
+            console.log("🔊 Audio unmuted!");
+          };
+          
+          document.addEventListener('click', unmuteOnInteraction, { once: true });
+          document.addEventListener('touchstart', unmuteOnInteraction, { once: true });
+          document.addEventListener('keydown', unmuteOnInteraction, { once: true });
+          
+        } catch (err: any) {
+          console.error("⚠️ Autoplay blocked by browser:", err.name, err.message);
+          // Fallback: User will need to click play button
+        }
+      }, 300);
+      
+      // Cleanup function
+      return () => {
+        console.log("🧹 Cleaning up audio element");
+        clearTimeout(autoplayTimer);
+        a.removeEventListener("canplay", handleCanPlay);
+        a.removeEventListener("play", handlePlay);
+        a.removeEventListener("pause", handlePause);
+        a.removeEventListener("ended", handleEnded);
+        a.removeEventListener("error", handleError);
+        a.pause();
+        a.src = "";
+        audioRef.current = null;
+      };
+    }
+    
+    // Cleanup if no autoplay
     return () => {
+      console.log("🧹 Cleaning up audio element (no autoplay)");
+      a.removeEventListener("canplay", handleCanPlay);
+      a.removeEventListener("play", handlePlay);
+      a.removeEventListener("pause", handlePause);
+      a.removeEventListener("ended", handleEnded);
+      a.removeEventListener("error", handleError);
       a.pause();
+      a.src = "";
       audioRef.current = null;
     };
-  }, []);
+  }, []); // Empty deps - run once on mount
 
   const play: AudioContextShape["play"] = async (url, meta) => {
     const a = audioRef.current;
@@ -70,10 +173,12 @@ export const AudioProvider: React.FC<React.PropsWithChildren> = ({ children }) =
     }
 
     setNow({ url, ...meta });
+    
     try {
-      await a.play(); // requires user gesture on iOS/Chrome
+      await a.play();
     } catch (err) {
       console.warn("Audio play() blocked or failed:", err);
+      throw err; // Let caller handle the error
     }
   };
 
@@ -81,7 +186,6 @@ export const AudioProvider: React.FC<React.PropsWithChildren> = ({ children }) =
     const a = audioRef.current;
     if (!a) return;
     a.pause();
-    // Do not clear src so user can resume quickly; keep meta
   };
 
   const setVolume = (v: number) => {
@@ -89,11 +193,13 @@ export const AudioProvider: React.FC<React.PropsWithChildren> = ({ children }) =
     const vv = Math.min(1, Math.max(0, v));
     if (a) a.volume = vv;
     setVolumeState(vv);
-    if (typeof window !== "undefined") localStorage.setItem("rfm:vol", String(vv));
+    if (typeof window !== "undefined") {
+      localStorage.setItem("rfm:vol", String(vv));
+    }
   };
 
   return (
-    <AudioCtx.Provider value={{ isReady, isPlaying, now, volume, play, stop, setVolume }}>
+    <AudioCtx.Provider value={{ isReady, isPlaying, isMuted, now, volume, play, stop, setVolume }}>
       {children}
     </AudioCtx.Provider>
   );
