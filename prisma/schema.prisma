@@ -1,0 +1,96 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Oap {
+  id        String      @id @default(cuid())
+  name      String      @unique // <= makes name usable in where:
+  role      String?
+  imageUrl  String?
+  twitter   String?
+  instagram String?
+  bio       String?
+  shows     OapOnShow[]
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+}
+
+model Show {
+  id          String         @id @default(cuid())
+  imageUrl    String? // path under /media/rewindfm/... or full URL
+  title       String
+  description String?
+  station     Station        @relation(fields: [stationId], references: [id], onDelete: Cascade)
+  stationId   String
+  oaps        OapOnShow[]
+  schedules   ScheduleSlot[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@unique([stationId, title], name: "stationId_title") // <= station-scoped unique
+}
+
+model ScheduleSlot {
+  id        String  @id @default(cuid())
+  station   Station @relation(fields: [stationId], references: [id], onDelete: Cascade)
+  stationId String
+  show      Show    @relation(fields: [showId], references: [id], onDelete: Cascade)
+  showId    String
+
+  dayOfWeek Int
+  startMin  Int
+  endMin    Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([stationId, dayOfWeek, startMin], name: "station_day_start") // <= named
+  @@index([stationId, dayOfWeek]) // common lookup for a day's grid
+  @@index([showId]) // backref queries from show -> slots
+}
+
+model Station {
+  id        String   @id @default(cuid())
+  name      String
+  streamUrl String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  shows     Show[]
+  schedules ScheduleSlot[]
+  settings  Settings?
+}
+
+model OapOnShow {
+  oapId  String
+  showId String
+  role   String?
+
+  oap  Oap  @relation(fields: [oapId], references: [id], onDelete: Cascade)
+  show Show @relation(fields: [showId], references: [id], onDelete: Cascade)
+
+  @@id([oapId, showId])
+  @@index([showId])
+  @@index([oapId])
+}
+
+model Settings {
+  id               String   @id @default(cuid())
+  stationId        String   @unique
+  streamUrl        String
+  timezone         String   @default("Europe/London")
+  uploadsNamespace String   @default("rewindfm")
+  aboutHtml        String?
+  socials          Json? // { instagram: "", twitter: "", youtube: "" }
+  theme            Json? // { blogHeaderBg: "#FBB63B", ... }
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  station Station @relation(fields: [stationId], references: [id], onDelete: Cascade)
+}
