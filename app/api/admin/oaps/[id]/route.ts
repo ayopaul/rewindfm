@@ -3,8 +3,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 import { NextResponse, type NextRequest } from "next/server";
-import { Prisma } from "@prisma/client";
-import prisma from "@/lib/prisma";
+import { supabase } from "@/lib/supabase";
 
 /** Coerce empty strings to null, trim strings, leave other types alone */
 function sanitize<T>(v: T) {
@@ -51,17 +50,18 @@ export async function PUT(
       );
     }
 
-    await prisma.oap.update({ where: { id }, data });
+    data.updatedAt = new Date().toISOString();
+
+    const { error, count } = await supabase
+      .from("Oap")
+      .update(data)
+      .eq("id", id);
+
+    if (error) throw error;
+
     return NextResponse.json({ ok: true });
   } catch (err: unknown) {
     const error = err as Error;
-    if (
-      error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === "P2025"
-    ) {
-      // Record not found
-      return NextResponse.json({ error: "OAP not found." }, { status: 404 });
-    }
     console.error("PUT /api/admin/oaps/[id]", error);
     return NextResponse.json(
       { error: error?.message || "Failed to update OAP" },
@@ -77,16 +77,16 @@ export async function DELETE(
 ) {
   const { id } = await params;
   try {
-    await prisma.oap.delete({ where: { id } });
+    const { error } = await supabase
+      .from("Oap")
+      .delete()
+      .eq("id", id);
+
+    if (error) throw error;
+
     return NextResponse.json({ ok: true });
   } catch (err: unknown) {
     const error = err as Error;
-    if (
-      error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === "P2025"
-    ) {
-      return NextResponse.json({ error: "OAP not found." }, { status: 404 });
-    }
     console.error("DELETE /api/admin/oaps/[id]", error);
     return NextResponse.json(
       { error: error?.message || "Failed to delete OAP" },

@@ -3,7 +3,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+import { supabase } from "@/lib/supabase";
 
 export async function GET(req: Request) {
   try {
@@ -15,47 +15,29 @@ export async function GET(req: Request) {
       return NextResponse.json({ oaps: [], shows: [], posts: [] });
     }
 
-    const [oaps, shows] = await Promise.all([
-      prisma.oap.findMany({
-        where: { name: { contains: q } },
-        select: { id: true, name: true, imageUrl: true },
-        take,
-      }),
-      prisma.show.findMany({
-        where: {
-          OR: [
-            { title: { contains: q } },
-            { description: { contains: q } },
-          ],
-        },
-        select: { id: true, title: true, imageUrl: true },
-        take,
-      }),
+    const [oapsResult, showsResult] = await Promise.all([
+      supabase
+        .from("Oap")
+        .select("id, name, imageUrl")
+        .ilike("name", `%${q}%`)
+        .limit(take),
+      supabase
+        .from("Show")
+        .select("id, title, imageUrl")
+        .or(`title.ilike.%${q}%,description.ilike.%${q}%`)
+        .limit(take),
     ]);
 
-    // Posts are optional; return empty if model not present
-    let posts: any[] = [];
-    try {
-      // @ts-ignore - Post may not exist in schema
-      posts = await prisma.post.findMany?.({
-        where: {
-          OR: [
-            { title: { contains: q } },
-            { excerpt: { contains: q } },
-          ],
-        },
-        select: { id: true, title: true, image: true },
-        take,
-      });
-      if (!Array.isArray(posts)) posts = [];
-    } catch {
-      posts = [];
-    }
+    const oaps = oapsResult.data ?? [];
+    const shows = showsResult.data ?? [];
+
+    // Posts are optional; return empty for now
+    const posts: unknown[] = [];
 
     return NextResponse.json({ oaps, shows, posts });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("/api/search", err);
-    // Don’t break the UI — return empty lists on failure.
+    // Don't break the UI — return empty lists on failure.
     return NextResponse.json({ oaps: [], shows: [], posts: [] }, { status: 200 });
   }
 }

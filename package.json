@@ -4,13 +4,13 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3004 --turbo",
-    "build": "prisma generate --schema=./prisma/sqlite/schema.prisma && next build",
+    "build": "next build",
     "build:no-lint": "SKIP_ENV_VALIDATION=true next build",
     "start": "next start -p 3004",
     "lint": "eslint"
   },
   "dependencies": {
-    "@prisma/client": "^6.15.0",
+    "@supabase/supabase-js": "^2.89.0",
     "class-variance-authority": "^0.7.1",
     "lucide-react": "^0.541.0",
     "next": "^15.5.9",
@@ -27,7 +27,6 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "^15.5.9",
-    "prisma": "^6.15.0",
     "shadcn-ui": "^0.9.5",
     "tailwindcss": "^4",
     "ts-node": "^10.9.2",

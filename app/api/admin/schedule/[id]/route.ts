@@ -1,12 +1,17 @@
+// app/api/admin/schedule/[id]/route.ts
 import { NextResponse, type NextRequest } from "next/server";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { supabase } from "@/lib/supabase";
 
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   try {
-    await prisma.scheduleSlot.delete({ where: { id } });
+    const { error } = await supabase
+      .from("ScheduleSlot")
+      .delete()
+      .eq("id", id);
+
+    if (error) throw error;
+
     return NextResponse.json({ ok: true });
   } catch {
     return NextResponse.json({ error: "Unable to delete" }, { status: 500 });
@@ -34,10 +39,18 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
     }
 
-    await prisma.scheduleSlot.update({
-      where: { id },
-      data: { dayOfWeek, showId, startMin, endMin },
-    });
+    const { error } = await supabase
+      .from("ScheduleSlot")
+      .update({
+        dayOfWeek,
+        showId,
+        startMin,
+        endMin,
+        updatedAt: new Date().toISOString(),
+      })
+      .eq("id", id);
+
+    if (error) throw error;
 
     return NextResponse.json({ ok: true });
   } catch {

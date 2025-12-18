@@ -1,21 +1,22 @@
 // app/admin/shows/page.tsx
-import { PrismaClient } from "@prisma/client";
+import { supabase } from "@/lib/supabase";
 import ShowsAdminClient from "../../../components/ShowsAdminClient";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
-
-const prisma = new PrismaClient();
 
 export const metadata = { title: "Shows · Admin · Rewind FM" };
 
 export default async function AdminShowsPage() {
   let shows: { id: string; title: string; description: string | null }[] = [];
   try {
-    shows = await prisma.show.findMany({
-      orderBy: { title: "asc" },
-      select: { id: true, title: true, description: true },
-    });
+    const { data, error } = await supabase
+      .from("Show")
+      .select("id, title, description")
+      .order("title", { ascending: true });
+
+    if (error) throw error;
+    shows = data ?? [];
   } catch (e) {
     console.error("Failed to preload shows for admin SSR:", e);
   }

@@ -1,21 +1,22 @@
 // app/admin/schedule/page.tsx (server component)
-import { PrismaClient } from "@prisma/client";
+import { supabase } from "@/lib/supabase";
 import ScheduleAdminClient from "@/components/ScheduleAdminClient";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
-
-const prisma = new PrismaClient();
 
 export const metadata = { title: "Schedule · Admin · Rewind FM" };
 
 export default async function AdminSchedulePage() {
   let shows: { id: string; title: string }[] = [];
   try {
-    shows = await prisma.show.findMany({
-      orderBy: { title: "asc" },
-      select: { id: true, title: true },
-    });
+    const { data, error } = await supabase
+      .from("Show")
+      .select("id, title")
+      .order("title", { ascending: true });
+
+    if (error) throw error;
+    shows = data ?? [];
   } catch (e) {
     console.error("Failed to load shows for admin schedule:", e);
   }

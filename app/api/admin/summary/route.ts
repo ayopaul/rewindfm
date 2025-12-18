@@ -3,16 +3,22 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+import { supabase } from "@/lib/supabase";
 
 export async function GET() {
   try {
-    const [oaps, shows, schedule] = await Promise.all([
-      prisma.oap.count(),
-      prisma.show.count(),
-      prisma.scheduleSlot.count(),
+    const [oapsResult, showsResult, scheduleResult] = await Promise.all([
+      supabase.from("Oap").select("id", { count: "exact", head: true }),
+      supabase.from("Show").select("id", { count: "exact", head: true }),
+      supabase.from("ScheduleSlot").select("id", { count: "exact", head: true }),
     ]);
-    return NextResponse.json({ oaps, shows, schedule, posts: 0 });
+
+    return NextResponse.json({
+      oaps: oapsResult.count ?? 0,
+      shows: showsResult.count ?? 0,
+      schedule: scheduleResult.count ?? 0,
+      posts: 0,
+    });
   } catch (err: unknown) {
     if (err instanceof Error) {
       console.error("GET /api/admin/summary", err.message);

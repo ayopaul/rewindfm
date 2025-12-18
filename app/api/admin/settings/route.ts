@@ -1,35 +1,57 @@
-//app/api/admin/settings/route.ts
+// app/api/admin/settings/route.ts
 import { NextResponse, type NextRequest } from "next/server";
-import { PrismaClient } from "@prisma/client";
-import { Prisma } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { supabase, generateId } from "@/lib/supabase";
 
 // Get current settings, auto-create if missing
 export async function GET() {
   try {
-    let settings = await prisma.settings.findFirst();
+    const { data: settings, error } = await supabase
+      .from("Settings")
+      .select("*")
+      .limit(1)
+      .single();
+
+    if (error && error.code !== "PGRST116") throw error; // PGRST116 = no rows
+
     if (!settings) {
-      const station = await prisma.station.findFirst();
-      if (!station) {
+      // Get station to create settings
+      const { data: station, error: stationError } = await supabase
+        .from("Station")
+        .select("id, streamUrl")
+        .limit(1)
+        .single();
+
+      if (stationError || !station) {
         return NextResponse.json(
           { error: "No station configured" },
           { status: 400 }
         );
       }
-      settings = await prisma.settings.create({
-        data: {
-          station: { connect: { id: station.id } },
+
+      const id = generateId();
+      const now = new Date().toISOString();
+
+      const { data: newSettings, error: createError } = await supabase
+        .from("Settings")
+        .insert({
+          id,
+          stationId: station.id,
           streamUrl: station.streamUrl ?? "",
           timezone: "Europe/London",
           uploadsNamespace: "rewindfm",
-          // Cast JSON field to Prisma.InputJsonValue
-          theme: ({ blogHeaderBg: "#FBB63B" } as Prisma.InputJsonValue),
-          // Initialize socials to DbNull so it’s an explicit JSON null
-          socials: Prisma.DbNull,
-        },
-      });
+          theme: { blogHeaderBg: "#FBB63B" },
+          socials: null,
+          createdAt: now,
+          updatedAt: now,
+        })
+        .select()
+        .single();
+
+      if (createError) throw createError;
+
+      return NextResponse.json({ settings: newSettings });
     }
+
     return NextResponse.json({ settings });
   } catch (error) {
     console.error("Settings GET error:", error);
@@ -44,60 +66,72 @@ export async function GET() {
 export async function PUT(req: NextRequest) {
   try {
     const body = await req.json();
-    const station = await prisma.station.findFirst();
-    if (!station) {
+
+    const { data: station, error: stationError } = await supabase
+      .from("Station")
+      .select("id")
+      .limit(1)
+      .single();
+
+    if (stationError || !station) {
       return NextResponse.json(
         { error: "No station configured" },
         { status: 400 }
       );
     }
 
-    const existing = await prisma.settings.findFirst();
-    
+    const { data: existing } = await supabase
+      .from("Settings")
+      .select("id")
+      .limit(1)
+      .single();
+
+    const now = new Date().toISOString();
+
     if (existing) {
       // Update existing settings
-      const updateData: Prisma.SettingsUpdateInput = {};
+      const updateData: Record<string, unknown> = { updatedAt: now };
+
       if (typeof body.streamUrl === "string") updateData.streamUrl = body.streamUrl;
       if (typeof body.timezone === "string") updateData.timezone = body.timezone;
-      if (typeof body.uploadsNamespace === "string")
-        updateData.uploadsNamespace = body.uploadsNamespace;
-      if (typeof body.aboutHtml !== "undefined")
-        updateData.aboutHtml = body.aboutHtml ?? null;
-      if (typeof body.socials !== "undefined") {
-        updateData.socials = body.socials === null
-          ? Prisma.DbNull
-          : (body.socials as Prisma.InputJsonValue);
-      }
-      if (typeof body.theme !== "undefined") {
-        updateData.theme = body.theme === null
-          ? Prisma.DbNull
-          : (body.theme as Prisma.InputJsonValue);
-      }
+      if (typeof body.uploadsNamespace === "string") updateData.uploadsNamespace = body.uploadsNamespace;
+      if (typeof body.aboutHtml !== "undefined") updateData.aboutHtml = body.aboutHtml ?? null;
+      if (typeof body.socials !== "undefined") updateData.socials = body.socials;
+      if (typeof body.theme !== "undefined") updateData.theme = body.theme;
 
-      const updated = await prisma.settings.update({ 
-        where: { id: existing.id }, 
-        data: updateData 
-      });
-      
+      const { data: updated, error } = await supabase
+        .from("Settings")
+        .update(updateData)
+        .eq("id", existing.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
       return NextResponse.json({ ok: true, settings: updated });
     } else {
       // Create new settings
-      const createData: Prisma.SettingsCreateInput = {
-        station: { connect: { id: station.id } },
-        streamUrl: (typeof body.streamUrl === "string") ? body.streamUrl : "",
-        timezone: (typeof body.timezone === "string") ? body.timezone : "Europe/London",
-        uploadsNamespace: (typeof body.uploadsNamespace === "string") ? body.uploadsNamespace : "rewindfm",
-        aboutHtml: (typeof body.aboutHtml !== "undefined") ? (body.aboutHtml ?? null) : null,
-        socials: (typeof body.socials === "undefined")
-          ? undefined
-          : (body.socials === null ? Prisma.DbNull : (body.socials as Prisma.InputJsonValue)),
-        theme: (typeof body.theme === "undefined")
-          ? ({ blogHeaderBg: "#FBB63B" } as Prisma.InputJsonValue)
-          : (body.theme === null ? Prisma.DbNull : (body.theme as Prisma.InputJsonValue)),
-      };
+      const id = generateId();
 
-      const created = await prisma.settings.create({ data: createData });
-      
+      const { data: created, error } = await supabase
+        .from("Settings")
+        .insert({
+          id,
+          stationId: station.id,
+          streamUrl: typeof body.streamUrl === "string" ? body.streamUrl : "",
+          timezone: typeof body.timezone === "string" ? body.timezone : "Europe/London",
+          uploadsNamespace: typeof body.uploadsNamespace === "string" ? body.uploadsNamespace : "rewindfm",
+          aboutHtml: body.aboutHtml ?? null,
+          socials: body.socials ?? null,
+          theme: body.theme ?? { blogHeaderBg: "#FBB63B" },
+          createdAt: now,
+          updatedAt: now,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
       return NextResponse.json({ ok: true, settings: created });
     }
   } catch (e) {

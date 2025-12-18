@@ -1,21 +1,6 @@
 // app/api/lineup/route.ts
-
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
-
-type JoinedOap = {
-  id: string;
-  name: string;
-  imageUrl: string | null;
-};
-
-type JoinedShow = {
-  id: string;
-  title: string;
-  description: string | null;
-  imageUrl: string | null;
-  oaps: { oap: JoinedOap }[];
-};
+import { supabase } from "@/lib/supabase";
 
 type ShowPayload = {
   id: string;
@@ -33,31 +18,34 @@ type DayPayload = {
   shows: ShowPayload[];
 };
 
-const prisma = new PrismaClient();
-
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const station = await prisma.station.findFirst();
+    const { data: station } = await supabase
+      .from("Station")
+      .select("id")
+      .limit(1)
+      .single();
+
     if (!station) {
       return NextResponse.json({ weekday: { days: [] }, weekend: { days: [] } });
     }
 
-    const slots = await prisma.scheduleSlot.findMany({
-      where: { stationId: station.id },
-      include: {
-        show: {
-          include: {
-            oaps: {
-              include: {
-                oap: true, // <-- this has `name`, `id`, maybe `imageUrl`
-              },
-            },
-          },
-        },
-      },
-    });
+    const { data: slots, error } = await supabase
+      .from("ScheduleSlot")
+      .select(`
+        id, dayOfWeek, startMin, endMin,
+        Show:showId (
+          id, title, description, imageUrl,
+          OapOnShow:id (
+            Oap:oapId (id, name, imageUrl)
+          )
+        )
+      `)
+      .eq("stationId", station.id);
+
+    if (error) throw error;
 
     const dayMap: Record<number, { key: string; label: string }> = {
       0: { key: "sun", label: "Sunday" },
@@ -74,9 +62,16 @@ export async function GET() {
       days[d.key] = { key: d.key, label: d.label, shows: [] as ShowPayload[] };
     });
 
-    for (const slot of slots) {
+    for (const slot of slots ?? []) {
       const { key } = dayMap[slot.dayOfWeek];
-      const show = slot.show as unknown as JoinedShow | null;
+      const show = slot.Show as unknown as {
+        id: string;
+        title: string;
+        description: string | null;
+        imageUrl: string | null;
+        OapOnShow: { Oap: { id: string; name: string; imageUrl: string | null } }[];
+      } | null;
+
       if (show) {
         days[key].shows.push({
           id: show.id,
@@ -85,10 +80,10 @@ export async function GET() {
           imageUrl: show.imageUrl,
           startMin: slot.startMin,
           endMin: slot.endMin,
-          oaps: show.oaps.map(({ oap }) => ({
-            id: oap.id,
-            name: oap.name,
-            avatarUrl: oap.imageUrl ?? null,
+          oaps: (show.OapOnShow ?? []).map(({ Oap }) => ({
+            id: Oap.id,
+            name: Oap.name,
+            avatarUrl: Oap.imageUrl ?? null,
           })),
         });
       }
@@ -106,4 +101,4 @@ export async function GET() {
     console.error("lineup GET error", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
-} 
+}

@@ -1,12 +1,13 @@
 // app/search/page.tsx
-import prisma from "@/lib/prisma";
 import Link from "next/link";
+import { supabase } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
 
 export default async function SearchPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const { q } = await searchParams;
   const qStr = (q || "").trim();
+
   if (qStr.length < 2) {
     return (
       <div
@@ -29,34 +30,22 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
     );
   }
 
-  const [oaps, shows, posts] = await Promise.all([
-    prisma.oap.findMany({
-      where: { name: { contains: qStr } }, // removed mode
-      select: { id: true, name: true, imageUrl: true },
-      take: 20,
-    }),
-    prisma.show.findMany({
-      where: {
-        OR: [
-          { title: { contains: qStr } },        // removed mode
-          { description: { contains: qStr } },  // removed mode
-        ],
-      },
-      select: { id: true, title: true, imageUrl: true },
-      take: 20,
-    }),
-    // @ts-ignore – Post may not exist yet
-    prisma.post?.findMany?.({
-      where: {
-        OR: [
-          { title: { contains: qStr } },   // removed mode
-          { excerpt: { contains: qStr } }, // removed mode
-        ],
-      },
-      select: { id: true, title: true, image: true },
-      take: 20,
-    }) ?? [],
+  const [oapsResult, showsResult] = await Promise.all([
+    supabase
+      .from("Oap")
+      .select("id, name, imageUrl")
+      .ilike("name", `%${qStr}%`)
+      .limit(20),
+    supabase
+      .from("Show")
+      .select("id, title, imageUrl")
+      .or(`title.ilike.%${qStr}%,description.ilike.%${qStr}%`)
+      .limit(20),
   ]);
+
+  const oaps = oapsResult.data ?? [];
+  const shows = showsResult.data ?? [];
+  const posts: unknown[] = []; // Blog posts not implemented yet
 
   return (
     <div
@@ -71,7 +60,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
     >
       <div className="sticky top-0 z-10 border-b border-black bg-[#FBB63B] p-4">
         <h1 className="text-xl md:text-2xl font-bold">
-          Search results for “{qStr}”
+          Search results for &quot;{qStr}&quot;
         </h1>
       </div>
       <main className="mx-auto max-w-4xl px-4 py-6 space-y-8">
@@ -79,13 +68,13 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
           <section>
             <h2 className="font-bold mb-2">OAPs ({oaps.length})</h2>
             <ul className="space-y-1">
-            {oaps.map((o: { id: string; name: string; imageUrl: string | null }) => (
+              {oaps.map((o: { id: string; name: string; imageUrl: string | null }) => (
                 <li key={o.id}>
-                    <Link href={`/oap/${o.id}`} className="underline">
+                  <Link href={`/oap/${o.id}`} className="underline">
                     {o.name}
-                    </Link>
+                  </Link>
                 </li>
-                ))}
+              ))}
             </ul>
           </section>
         )}
@@ -94,13 +83,13 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
           <section>
             <h2 className="font-bold mb-2">Shows ({shows.length})</h2>
             <ul className="space-y-1">
-            {shows.map((s: { id: string; title: string; imageUrl: string | null }) => (
+              {shows.map((s: { id: string; title: string; imageUrl: string | null }) => (
                 <li key={s.id}>
-                    <Link href={`/show/${s.id}`} className="underline">
+                  <Link href={`/show/${s.id}`} className="underline">
                     {s.title}
-                    </Link>
+                  </Link>
                 </li>
-                ))}
+              ))}
             </ul>
           </section>
         )}
@@ -109,13 +98,16 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
           <section>
             <h2 className="font-bold mb-2">Posts ({posts.length})</h2>
             <ul className="space-y-1">
-              {posts.map((p: any) => (
-                <li key={p.id}>
-                  <Link href={`/blog/${p.id}`} className="underline">
-                    {p.title}
-                  </Link>
-                </li>
-              ))}
+              {posts.map((p: unknown) => {
+                const post = p as { id: string; title: string };
+                return (
+                  <li key={post.id}>
+                    <Link href={`/blog/${post.id}`} className="underline">
+                      {post.title}
+                    </Link>
+                  </li>
+                );
+              })}
             </ul>
           </section>
         )}

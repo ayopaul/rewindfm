@@ -1,19 +1,36 @@
 // app/admin/settings/page.tsx
-import { PrismaClient } from "@prisma/client";
+import { supabase } from "@/lib/supabase";
 import SettingsAdminClient from "@/components/SettingsAdminClient";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-const prisma = new PrismaClient();
-
 export const metadata = { title: "Settings · Admin · Rewind FM" };
 
+type SettingsData = {
+  id: string;
+  stationId: string;
+  streamUrl: string;
+  timezone: string;
+  uploadsNamespace: string;
+  aboutHtml: string | null;
+  socials: Record<string, string> | null;
+  theme: Record<string, string> | null;
+  createdAt: string;
+  updatedAt: string;
+} | null;
+
 export default async function AdminSettingsPage() {
-  // Use a temporary cast in case Prisma Client hasn't been regenerated yet.
-  let settings = null as Awaited<ReturnType<typeof prisma.settings.findFirst>> | null;
+  let settings: SettingsData = null;
   try {
-    settings = await prisma.settings.findFirst();
+    const { data, error } = await supabase
+      .from("Settings")
+      .select("*")
+      .limit(1)
+      .single();
+
+    if (error && error.code !== "PGRST116") throw error;
+    settings = data ?? null;
   } catch (e) {
     console.error("Failed to load admin settings during render:", e);
     settings = null;
@@ -27,7 +44,7 @@ export default async function AdminSettingsPage() {
       >
         Settings
       </h1>
-      <SettingsAdminClient initial={settings ?? null} />
+      <SettingsAdminClient initial={settings} />
     </main>
   );
 }

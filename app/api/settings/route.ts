@@ -1,15 +1,23 @@
 // app/api/settings/route.ts
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import { supabase } from "@/lib/supabase";
 
-const prisma = new PrismaClient();
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
     // Prefer Settings.streamUrl; fall back to first Station.streamUrl; finally env
-    const settings = await prisma.settings.findFirst().catch(() => null);
-    const station = await prisma.station.findFirst().catch(() => null);
+    const { data: settings } = await supabase
+      .from("Settings")
+      .select("streamUrl")
+      .limit(1)
+      .single();
+
+    const { data: station } = await supabase
+      .from("Station")
+      .select("streamUrl")
+      .limit(1)
+      .single();
 
     const streamUrl =
       settings?.streamUrl ||

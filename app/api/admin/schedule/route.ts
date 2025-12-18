@@ -1,17 +1,29 @@
 // app/api/admin/schedule/route.ts
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { supabase, generateId } from "@/lib/supabase";
 
 export async function GET() {
   try {
-    const items = await prisma.scheduleSlot.findMany({
-      orderBy: [{ dayOfWeek: "asc" }, { startMin: "asc" }],
-      include: { show: { select: { id: true, title: true } } },
-    });
-    return NextResponse.json({ items });
-  } catch (e) {
+    const { data: items, error } = await supabase
+      .from("ScheduleSlot")
+      .select(`
+        id, stationId, showId, dayOfWeek, startMin, endMin, createdAt, updatedAt,
+        Show:showId (id, title)
+      `)
+      .order("dayOfWeek", { ascending: true })
+      .order("startMin", { ascending: true });
+
+    if (error) throw error;
+
+    // Transform to match expected format
+    const transformed = items?.map((item) => ({
+      ...item,
+      show: item.Show,
+      Show: undefined,
+    })) ?? [];
+
+    return NextResponse.json({ items: transformed });
+  } catch {
     return NextResponse.json({ error: "Failed to load schedule" }, { status: 500 });
   }
 }
@@ -36,25 +48,35 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
     }
 
-    // If you have multi-station, add stationId from Settings or env
-    const station = await prisma.station.findFirst();
-    if (!station) {
+    // Get first station
+    const { data: station, error: stationError } = await supabase
+      .from("Station")
+      .select("id")
+      .limit(1)
+      .single();
+
+    if (stationError || !station) {
       return NextResponse.json({ error: "No station configured" }, { status: 400 });
     }
 
-    const created = await prisma.scheduleSlot.create({
-      data: {
-        stationId: station.id,
-        showId,
-        dayOfWeek,
-        startMin,
-        endMin,
-      },
+    const id = generateId();
+    const now = new Date().toISOString();
+
+    const { error } = await supabase.from("ScheduleSlot").insert({
+      id,
+      stationId: station.id,
+      showId,
+      dayOfWeek,
+      startMin,
+      endMin,
+      createdAt: now,
+      updatedAt: now,
     });
 
-    return NextResponse.json({ ok: true, id: created.id });
-  } catch (e: any) {
-    // Unique/overlap checks can be added later; keep MVP simple
+    if (error) throw error;
+
+    return NextResponse.json({ ok: true, id });
+  } catch {
     return NextResponse.json({ error: "Unable to create slot" }, { status: 500 });
   }
 }

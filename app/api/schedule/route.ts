@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
-const prisma = new PrismaClient();
+import { supabase } from "@/lib/supabase";
 
 /**
  * Optional query: ?station=rewind-fm&day=1
@@ -9,25 +8,71 @@ const prisma = new PrismaClient();
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const day = searchParams.get("day");
-  // Support either ?stationId=... or legacy ?station=... passing an id
   const stationIdParam = searchParams.get("stationId") ?? searchParams.get("station") ?? undefined;
 
-  // Resolve station by id if provided; otherwise pick the first station (single-station setup)
-  const station = stationIdParam
-    ? await prisma.station.findUnique({ where: { id: stationIdParam } })
-    : await prisma.station.findFirst();
+  // Resolve station by id if provided; otherwise pick the first station
+  let station;
+  if (stationIdParam) {
+    const { data } = await supabase
+      .from("Station")
+      .select("*")
+      .eq("id", stationIdParam)
+      .single();
+    station = data;
+  } else {
+    const { data } = await supabase
+      .from("Station")
+      .select("*")
+      .limit(1)
+      .single();
+    station = data;
+  }
 
   if (!station) {
     return NextResponse.json({ error: "Station not found" }, { status: 404 });
   }
 
-  const where = { stationId: station.id, ...(day ? { dayOfWeek: Number(day) } : {}) };
+  let query = supabase
+    .from("ScheduleSlot")
+    .select(`
+      *,
+      Show:showId (
+        *,
+        OapOnShow:id (
+          oapId,
+          role,
+          Oap:oapId (*)
+        )
+      )
+    `)
+    .eq("stationId", station.id)
+    .order("dayOfWeek", { ascending: true })
+    .order("startMin", { ascending: true });
 
-  const slots = await prisma.scheduleSlot.findMany({
-    where,
-    include: { show: { include: { oaps: { include: { oap: true } } } } },
-    orderBy: [{ dayOfWeek: "asc" }, { startMin: "asc" }],
-  });
+  if (day) {
+    query = query.eq("dayOfWeek", Number(day));
+  }
 
-  return NextResponse.json(slots);
+  const { data: slots, error } = await query;
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  // Transform to match expected format
+  const transformed = slots?.map((slot) => ({
+    ...slot,
+    show: slot.Show ? {
+      ...slot.Show,
+      oaps: slot.Show.OapOnShow?.map((link: { oapId: string; role: string | null; Oap: unknown }) => ({
+        oapId: link.oapId,
+        role: link.role,
+        oap: link.Oap,
+      })),
+      OapOnShow: undefined,
+    } : null,
+    Show: undefined,
+  })) ?? [];
+
+  return NextResponse.json(transformed);
 }

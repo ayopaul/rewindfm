@@ -1,11 +1,9 @@
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import { PrismaClient } from "@prisma/client";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Link from "next/link";
-
-const prisma = new PrismaClient();
+import { supabase } from "@/lib/supabase";
 
 // Normalize social handles from DB to full URLs
 function normalizeSocial(value: string | null | undefined, kind: "twitter" | "instagram"): { url: string; label: string } | null {
@@ -13,7 +11,6 @@ function normalizeSocial(value: string | null | undefined, kind: "twitter" | "in
   let v = value.trim();
   // If they pasted a full URL, keep it
   if (/^https?:\/\//i.test(v)) {
-    // derive label from path
     try {
       const u = new URL(v);
       const parts = u.pathname.split("/").filter(Boolean);
@@ -34,41 +31,28 @@ type Params = { params: Promise<{ id: string }> };
 
 export async function generateMetadata({ params }: Params) {
   const { id } = await params;
-  const oap = await prisma.oap.findUnique({
-    where: { id },
-    select: { name: true, role: true },
-  });
+  const { data: oap } = await supabase
+    .from("Oap")
+    .select("name, role")
+    .eq("id", id)
+    .single();
+
   if (!oap) return { title: "OAP · Rewind FM" };
   return { title: `${oap.name} · Rewind FM`, description: oap.role ?? undefined };
 }
 
 export default async function OapDetailPage({ params }: Params) {
   const { id } = await params;
-  // Align fields with your schema (name, role, bio, imageUrl, socials, etc.)
-  const raw = await prisma.oap.findUnique({
-    where: { id },
-    select: {
-      id: true,
-      name: true,
-      role: true,
-      imageUrl: true,
-      bio: true,
-      twitter: true,
-      instagram: true,
-    },
-  });
 
-  if (!raw) return notFound();
+  const { data: raw, error } = await supabase
+    .from("Oap")
+    .select("id, name, role, imageUrl, bio, twitter, instagram")
+    .eq("id", id)
+    .single();
 
-  const oap: {
-    id: string;
-    name: string;
-    role: string | null;
-    imageUrl: string | null;
-    bio: string | null;
-    twitter: string | null;
-    instagram: string | null;
-  } = {
+  if (error || !raw) return notFound();
+
+  const oap = {
     id: String(raw.id),
     name: String(raw.name),
     role: raw.role ?? null,
@@ -77,8 +61,6 @@ export default async function OapDetailPage({ params }: Params) {
     twitter: raw.twitter ?? null,
     instagram: raw.instagram ?? null,
   };
-
-  if (!oap) return notFound();
 
   return (
     <>
@@ -130,7 +112,6 @@ export default async function OapDetailPage({ params }: Params) {
 
             {oap.bio && (
               <div className="prose prose-neutral max-w-none mt-8">
-                {/* If bio is rich text/HTML from admin, render safely; otherwise plain */}
                 <p className="whitespace-pre-line text-black">{oap.bio}</p>
               </div>
             )}

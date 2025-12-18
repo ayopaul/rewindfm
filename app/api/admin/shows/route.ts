@@ -1,18 +1,17 @@
 // app/api/admin/shows/route.ts
 import { NextResponse, type NextRequest } from "next/server";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { supabase, generateId } from "@/lib/supabase";
 
 export async function GET() {
   try {
-    const rows = await prisma.show.findMany({
-      orderBy: { title: "asc" },
-      // `imageUrl` not in schema, so do not select it
-      select: { id: true, title: true, description: true },
-    });
-    // Keep client response shape stable by adding imageUrl: null
-    const items = rows.map((r) => ({ ...r, imageUrl: null as string | null }));
+    const { data: rows, error } = await supabase
+      .from("Show")
+      .select("id, title, description, imageUrl")
+      .order("title", { ascending: true });
+
+    if (error) throw error;
+
+    const items = rows?.map((r) => ({ ...r, imageUrl: r.imageUrl ?? null })) ?? [];
     return NextResponse.json({ items });
   } catch {
     return NextResponse.json({ error: "Failed to load shows" }, { status: 500 });
@@ -24,22 +23,37 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const title = String(body?.title || "").trim();
     const description = body?.description ?? null;
-    // const imageUrl = body?.imageUrl ?? null; // ignored: field not in schema
 
     if (!title) {
       return NextResponse.json({ error: "Title is required" }, { status: 400 });
     }
 
-    const station = await prisma.station.findFirst();
-    if (!station) {
+    // Get first station
+    const { data: station, error: stationError } = await supabase
+      .from("Station")
+      .select("id")
+      .limit(1)
+      .single();
+
+    if (stationError || !station) {
       return NextResponse.json({ error: "No station configured" }, { status: 400 });
     }
 
-    const created = await prisma.show.create({
-      data: { title, description, stationId: station.id },
+    const id = generateId();
+    const now = new Date().toISOString();
+
+    const { error } = await supabase.from("Show").insert({
+      id,
+      title,
+      description,
+      stationId: station.id,
+      createdAt: now,
+      updatedAt: now,
     });
 
-    return NextResponse.json({ ok: true, id: created.id });
+    if (error) throw error;
+
+    return NextResponse.json({ ok: true, id });
   } catch {
     return NextResponse.json({ error: "Unable to create show" }, { status: 500 });
   }

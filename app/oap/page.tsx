@@ -2,21 +2,20 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Image from "next/image";
-import { PrismaClient } from "@prisma/client";
 import Link from "next/link";
+import { supabase } from "@/lib/supabase";
 
 export const metadata = { title: "OAPs · Rewind FM" };
 
-const prisma = new PrismaClient();
-
 async function getOaps() {
-  // Keep selection minimal to avoid schema mismatch errors
   try {
-    const oaps = await prisma.oap.findMany({
-      orderBy: { name: "asc" as const },
-      select: { id: true, name: true },
-    });
-    return oaps;
+    const { data: oaps, error } = await supabase
+      .from("Oap")
+      .select("id, name")
+      .order("name", { ascending: true });
+
+    if (error) throw error;
+    return oaps ?? [];
   } catch {
     // Fallback sample if DB not ready
     return [
