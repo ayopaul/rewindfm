@@ -39,6 +39,9 @@ yarn-error.log*
 # Supabase SQL scripts (may contain sensitive data)
 supabase/*.sql
 
+# Deploy scripts (may contain credentials)
+scripts/deploy-*.sh
+
 # vercel
 .vercel
 
