@@ -2,13 +2,13 @@
 
 "use client";
 import * as React from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 
 export default function AdminLoginPage() {
+  const [username, setUsername] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
   const [submitting, setSubmitting] = React.useState(false);
-  const router = useRouter();
   const search = useSearchParams();
 
   // Sanitize "next" to avoid open redirects
@@ -24,10 +24,12 @@ export default function AdminLoginPage() {
       const res = await fetch("/api/admin/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ username, password }),
       });
       if (res.ok) {
-        router.replace(next);
+        // Use full page navigation to ensure cookie is sent with the request
+        window.location.href = next;
+        return;
       } else {
         setError("Invalid password");
         setSubmitting(false);
@@ -62,7 +64,22 @@ export default function AdminLoginPage() {
               Admin Login
             </h1>
 
-            <label htmlFor="admin-password" className="block text-sm mb-2">
+            <label htmlFor="admin-username" className="block text-sm mb-2">
+              Username
+            </label>
+            <input
+              id="admin-username"
+              name="username"
+              type="text"
+              className="w-full border px-3 py-2"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              autoFocus
+              autoComplete="username"
+              required
+            />
+
+            <label htmlFor="admin-password" className="block text-sm mb-2 mt-4">
               Password
             </label>
             <input
@@ -72,7 +89,6 @@ export default function AdminLoginPage() {
               className="w-full border px-3 py-2"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              autoFocus
               autoComplete="current-password"
               required
             />
