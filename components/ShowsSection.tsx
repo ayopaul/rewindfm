@@ -182,11 +182,11 @@ function DayRail({ sideLabel, sideColor, days, validKeys, isFirst }: DayRailProp
                 onClick={prevDay}
                 disabled={!canPrev}
                 aria-label="Previous day"
-                className="absolute left-0 top-1/2 -translate-y-1/2 w-[28%] sm:w-[36%] lg:w-[44%] h-[3px] flex items-center text-black/40 hover:text-black disabled:opacity-20 transition-colors"
+                className="absolute left-0 top-1/2 -translate-y-1/2 w-[28%] sm:w-[36%] lg:w-[44%] h-6 flex items-center text-black/40 hover:text-black disabled:opacity-20 transition-colors"
               >
-                <svg viewBox="0 0 100 3" fill="none" className="w-full h-[3px]">
-                  <line x1="100" y1="1.5" x2="12" y2="1.5" stroke="currentColor" strokeWidth="3" />
-                  <polyline points="18,0 6,1.5 18,3" fill="none" stroke="currentColor" strokeWidth="3" />
+                <svg viewBox="0 0 120 24" fill="none" className="w-full h-6">
+                  <line x1="120" y1="12" x2="4" y2="12" stroke="currentColor" strokeWidth="2" />
+                  <polyline points="16,4 4,12 16,20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
                 </svg>
               </button>
 
@@ -203,11 +203,11 @@ function DayRail({ sideLabel, sideColor, days, validKeys, isFirst }: DayRailProp
                 onClick={nextDay}
                 disabled={!canNext}
                 aria-label="Next day"
-                className="absolute right-0 top-1/2 -translate-y-1/2 w-[28%] sm:w-[36%] lg:w-[44%] h-[3px] flex items-center justify-end text-black/40 hover:text-black disabled:opacity-20 transition-colors"
+                className="absolute right-0 top-1/2 -translate-y-1/2 w-[28%] sm:w-[36%] lg:w-[44%] h-6 flex items-center justify-end text-black/40 hover:text-black disabled:opacity-20 transition-colors"
               >
-                <svg viewBox="0 0 100 3" fill="none" className="w-full h-[3px]">
-                  <line x1="0" y1="1.5" x2="88" y2="1.5" stroke="currentColor" strokeWidth="3" />
-                  <polyline points="82,0 94,1.5 82,3" fill="none" stroke="currentColor" strokeWidth="3" />
+                <svg viewBox="0 0 120 24" fill="none" className="w-full h-6">
+                  <line x1="0" y1="12" x2="116" y2="12" stroke="currentColor" strokeWidth="2" />
+                  <polyline points="104,4 116,12 104,20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
                 </svg>
               </button>
             </div>

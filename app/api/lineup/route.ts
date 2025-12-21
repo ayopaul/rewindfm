@@ -38,7 +38,7 @@ export async function GET() {
         id, dayOfWeek, startMin, endMin,
         Show:showId (
           id, title, description, imageUrl,
-          OapOnShow:id (
+          OapOnShow (
             Oap:oapId (id, name, imageUrl)
           )
         )

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { Toaster } from "sonner";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   async function logout() {
@@ -106,6 +107,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           {children}
         </main>
       </Suspense>
+
+      {/* Toast notifications */}
+      <Toaster position="top-right" richColors closeButton />
     </section>
   );
 }

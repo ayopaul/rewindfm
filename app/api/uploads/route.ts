@@ -1,12 +1,10 @@
 // app/api/uploads/route.ts
 import { NextResponse, type NextRequest } from "next/server";
-import fs from "node:fs/promises";
-import path from "node:path";
 import crypto from "node:crypto";
+import path from "node:path";
+import { supabase } from "@/lib/supabase";
 
-// Local/dev friendly default. Can be overridden in .env(.local)
-// MEDIA_ROOT=/var/uploads  (prod)
-const MEDIA_ROOT = process.env.MEDIA_ROOT || path.join(process.cwd(), "uploads");
+const BUCKET_NAME = process.env.SUPABASE_STORAGE_BUCKET || "media";
 
 function yyyymm(d = new Date()) {
   return { y: String(d.getFullYear()), m: String(d.getMonth() + 1).padStart(2, "0") };
@@ -15,8 +13,8 @@ function yyyymm(d = new Date()) {
 /**
  * POST /api/uploads
  * Accepts multipart/form-data with a single field `file`.
- * Writes to:  <MEDIA_ROOT>/<namespace>/<yyyy>/<mm>/<filename-hash>.<ext>
- * Returns:    { ok: true, url: "/media/<namespace>/<yyyy>/<mm>/<fname>" }
+ * Uploads to Supabase Storage bucket.
+ * Returns:    { ok: true, url: "<public_url>" }
  */
 export async function POST(req: NextRequest) {
   try {
@@ -39,15 +37,29 @@ export async function POST(req: NextRequest) {
     const hash = crypto.createHash("sha1").update(buf).digest("hex").slice(0, 8);
     const fname = `${base}-${hash}${ext}`;
 
-    const dir = path.join(MEDIA_ROOT, namespace, y, m);
-    await fs.mkdir(dir, { recursive: true });
+    // Build the path in Supabase storage
+    const storagePath = `${namespace}/${y}/${m}/${fname}`;
 
-    const full = path.join(dir, fname);
-    // Write the file; if a file with same name somehow exists, overwrite is fine in dev
-    await fs.writeFile(full, buf);
+    // Upload to Supabase Storage
+    const { error: uploadError } = await supabase.storage
+      .from(BUCKET_NAME)
+      .upload(storagePath, buf, {
+        contentType: file.type || "application/octet-stream",
+        upsert: true,
+      });
 
-    // Public URL served by /app/media/[...path]/route.ts
-    const url = `/media/${namespace}/${y}/${m}/${fname}`;
+    if (uploadError) {
+      console.error("Supabase upload error:", uploadError);
+      return NextResponse.json({ error: "upload failed", detail: uploadError.message }, { status: 500 });
+    }
+
+    // Get the public URL
+    const { data: publicUrlData } = supabase.storage
+      .from(BUCKET_NAME)
+      .getPublicUrl(storagePath);
+
+    const url = publicUrlData.publicUrl;
+
     return NextResponse.json({ ok: true, url });
   } catch (e: any) {
     console.error("/api/uploads error:", e?.message || e);

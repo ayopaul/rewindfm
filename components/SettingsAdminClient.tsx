@@ -1,7 +1,8 @@
-// componenets/SettingsAdminClient.tsx
+// components/SettingsAdminClient.tsx
 
 "use client";
 import * as React from "react";
+import { toast } from "sonner";
 
 // Admin settings client — Neue Plak vibe, square edges
 // Props: server passes initial settings object (or null)
@@ -31,8 +32,10 @@ export default function SettingsAdminClient({ initial }: { initial: any }) {
         const j = await res.json().catch(() => ({}));
         throw new Error(j?.error || "Save failed");
       }
+      toast.success("Settings saved successfully!");
       setOk(true);
     } catch (e: any) {
+      toast.error(e?.message || "Error saving settings");
       setError(e?.message || "Error");
     } finally {
       setSaving(false);

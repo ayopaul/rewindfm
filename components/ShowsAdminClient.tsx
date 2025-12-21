@@ -2,7 +2,8 @@
 "use client";
 
 import * as React from "react";
-import MediaPicker from "./MediaPicker"; // at top
+import { toast } from "sonner";
+import MediaPicker from "./MediaPicker";
 
 type ShowItem = {
   id: string;
@@ -183,7 +184,10 @@ export default function ShowsAdminClient({ initialShows = [] as ShowItem[] }) {
         description: form.description.trim() || null,
         imageUrl: form.imageUrl.trim() || null,
       };
-      if (!payload.title) throw new Error("Title is required");
+      if (!payload.title) {
+        toast.error("Title is required");
+        throw new Error("Title is required");
+      }
       const res = await fetch("/api/admin/shows", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -193,9 +197,11 @@ export default function ShowsAdminClient({ initialShows = [] as ShowItem[] }) {
         const j = await res.json().catch(() => ({}));
         throw new Error(j?.error || "Unable to create show");
       }
+      toast.success(`Show "${payload.title}" created successfully!`);
       setForm({ title: "", description: "", imageUrl: "" });
       await refresh();
     } catch (e: any) {
+      toast.error(e?.message || "Error creating show");
       setError(e?.message || "Error");
     }
   }
@@ -208,8 +214,10 @@ export default function ShowsAdminClient({ initialShows = [] as ShowItem[] }) {
         const j = await res.json().catch(() => ({}));
         throw new Error(j?.error || "Unable to delete show");
       }
+      toast.success("Show deleted successfully!");
       await refresh();
     } catch (e: any) {
+      toast.error(e?.message || "Error deleting show");
       setError(e?.message || "Error");
     }
   }
@@ -226,8 +234,10 @@ export default function ShowsAdminClient({ initialShows = [] as ShowItem[] }) {
         const j = await res.json().catch(() => ({}));
         throw new Error(j?.error || "Unable to update show");
       }
+      toast.success("Show updated successfully!");
       await refresh();
     } catch (e: any) {
+      toast.error(e?.message || "Error updating show");
       setError(e?.message || "Error");
     }
   }
@@ -278,11 +288,10 @@ export default function ShowsAdminClient({ initialShows = [] as ShowItem[] }) {
             />
           </div>
           <div className="md:col-span-3">
-            <FieldLabel>Image URL</FieldLabel>
-            <Input
-              placeholder="/media/rewindfm/2025/08/morning-drive.jpg"
-              value={form.imageUrl}
-              onChange={(e) => setForm((f) => ({ ...f, imageUrl: e.target.value }))}
+            <MediaPicker
+              label="Show Image"
+              value={form.imageUrl || null}
+              onChange={(url) => setForm((f) => ({ ...f, imageUrl: url || "" }))}
             />
           </div>
           <div className="md:col-span-12 flex items-end justify-end">

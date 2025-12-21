@@ -11,7 +11,7 @@ async function getOaps() {
   try {
     const { data: oaps, error } = await supabase
       .from("Oap")
-      .select("id, name")
+      .select("id, name, imageUrl")
       .order("name", { ascending: true });
 
     if (error) throw error;
@@ -19,10 +19,10 @@ async function getOaps() {
   } catch {
     // Fallback sample if DB not ready
     return [
-      { id: "sam-ade", name: "Sam Ade" },
-      { id: "nkechi-ola", name: "Nkechi Ola" },
-      { id: "tunde-bello", name: "Tunde Bello" },
-      { id: "lola-james", name: "Lola James" },
+      { id: "sam-ade", name: "Sam Ade", imageUrl: null },
+      { id: "nkechi-ola", name: "Nkechi Ola", imageUrl: null },
+      { id: "tunde-bello", name: "Tunde Bello", imageUrl: null },
+      { id: "lola-james", name: "Lola James", imageUrl: null },
     ];
   }
 }
@@ -60,13 +60,19 @@ export default async function OapsPage() {
                 className="absolute inset-0 z-10"
               />
               <div className="relative mx-auto h-28 w-28 sm:h-32 sm:w-32 overflow-hidden rounded-full border border-black/20 bg-black/5">
-                <Image
-                  src={`/media/oaps/${oap.id}.jpg`}
-                  alt={oap.name}
-                  fill
-                  sizes="128px"
-                  className="object-cover"
-                />
+                {oap.imageUrl ? (
+                  <Image
+                    src={oap.imageUrl}
+                    alt={oap.name}
+                    fill
+                    sizes="128px"
+                    className="object-cover"
+                  />
+                ) : (
+                  <div className="h-full w-full flex items-center justify-center text-black/30 text-3xl">
+                    ?
+                  </div>
+                )}
               </div>
               <h2
                 className="mt-4 text-center text-black"

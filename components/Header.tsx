@@ -89,7 +89,7 @@ function HeaderSearch() {
       </div>
 
       {open && total > 0 && (
-        <div className="absolute left-0 right-0 top-[calc(100%_-_1px)] z-20 border border-black bg-white shadow-sm">
+        <div className="absolute left-0 right-0 top-[calc(100%_-_1px)] z-50 border border-black bg-white shadow-sm">
           {/* OAPs */}
           {results.oaps.length > 0 && (
             <div className="p-2 border-b border-black/10">
