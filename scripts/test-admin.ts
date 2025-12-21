@@ -11,6 +11,7 @@
  */
 
 import { createClient } from "@supabase/supabase-js";
+import { randomUUID } from "crypto";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -104,12 +105,17 @@ async function testShowCRUD() {
       .single();
 
     // Create
+    const newShowId = randomUUID();
+    const now = new Date().toISOString();
     const { data: created, error: createError } = await supabase
       .from("Show")
       .insert({
+        id: newShowId,
         title: testTitle,
         description: "Test description",
         stationId: stationData!.id,
+        createdAt: now,
+        updatedAt: now,
       })
       .select()
       .single();
@@ -158,12 +164,17 @@ async function testOapCRUD() {
 
   try {
     // Create
+    const newOapId = randomUUID();
+    const now = new Date().toISOString();
     const { data: created, error: createError } = await supabase
       .from("Oap")
       .insert({
+        id: newOapId,
         name: testName,
         role: "Host",
         bio: "Test bio",
+        createdAt: now,
+        updatedAt: now,
       })
       .select()
       .single();
@@ -282,14 +293,25 @@ async function testRLSPolicies() {
   log("Testing RLS policies (using anon key would be more accurate)...");
   try {
     // With service role, RLS is bypassed, so we just check tables are accessible
-    const tables = ["Station", "Show", "Oap", "OapOnShow", "ScheduleSlot", "Settings"];
+    // OapOnShow has composite key (oapId, showId), not id column
+    const tablesWithId = ["Station", "Show", "Oap", "ScheduleSlot", "Settings"];
+    const tablesWithCompositeKey = [{ name: "OapOnShow", columns: "oapId, showId" }];
 
-    for (const table of tables) {
+    for (const table of tablesWithId) {
       const { error } = await supabase.from(table).select("id").limit(1);
       if (error) {
         fail(`RLS - ${table}`, error.message);
       } else {
         success(`RLS - ${table} accessible`);
+      }
+    }
+
+    for (const table of tablesWithCompositeKey) {
+      const { error } = await supabase.from(table.name).select(table.columns).limit(1);
+      if (error) {
+        fail(`RLS - ${table.name}`, error.message);
+      } else {
+        success(`RLS - ${table.name} accessible`);
       }
     }
   } catch (e: any) {
