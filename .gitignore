@@ -32,12 +32,12 @@ yarn-error.log*
 
 # Environment files
 # -----------------
-# Ignore developer-specific overrides
+.env
 .env.local
 .env.*.local
 
-# Explicitly allow base .env to be committed (safe defaults only)
-!.env
+# Supabase SQL scripts (may contain sensitive data)
+supabase/*.sql
 
 # vercel
 .vercel
