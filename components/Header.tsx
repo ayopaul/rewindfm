@@ -174,7 +174,7 @@ function HeaderSearch() {
 export default function Header() {
   return (
     <header className="">
-      <div className="grid grid-cols-4 grid-rows-[auto,auto] gap-0">
+      <div className="grid grid-cols-5 grid-rows-[auto,auto] gap-0">
         {/* Logo block spans 2 rows */}
         <div className="row-span-2 flex flex-col items-center justify-center bg-[#008C99] px-6 py-6">
           <Link href="/" className="flex items-center justify-center">
@@ -203,6 +203,13 @@ export default function Header() {
           OAPs
         </Link>
         <Link
+          href="/show"
+          className="flex items-center justify-center h-12 bg-[#C6E9EE] hover:bg-[#FFFEF1] aria-[current=page]:bg-[#1092A4] transition-colors duration-200"
+          style={{ fontFamily: "'Neue Plak', sans-serif", fontWeight: 700, fontSize: "21px", color: "black" }}
+        >
+          Shows
+        </Link>
+        <Link
           href="/about"
           className="flex items-center justify-center h-12 bg-[#C6E9EE] hover:bg-[#FFFEF1] aria-[current=page]:bg-[#1092A4] transition-colors duration-200"
           style={{ fontFamily: "'Neue Plak', sans-serif", fontWeight: 700, fontSize: "21px", color: "black" }}
@@ -210,8 +217,8 @@ export default function Header() {
           About
         </Link>
 
-        {/* Row 2: Search (spans cols 2–4) */}
-        <div className="col-span-3">
+        {/* Row 2: Search (spans cols 2–5) */}
+        <div className="col-span-4">
           <HeaderSearch />
         </div>
       </div>
