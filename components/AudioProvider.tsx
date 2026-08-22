@@ -103,20 +103,23 @@ export const AudioProvider: React.FC<React.PropsWithChildren> = ({ children }) =
           a.src = defaultUrl;
           console.log("📡 Audio src set to:", defaultUrl);
 
-          // Start MUTED to bypass browser autoplay restrictions
+          // Start MUTED to bypass browser autoplay restrictions. Set React
+          // state to match immediately (not after the play() promise
+          // settles) — for a live stream that promise can lag well behind
+          // the 'play' event, which would otherwise leave a window where
+          // isPlaying is already true but isMuted hasn't caught up, so the
+          // "Tap to Unmute" prompt fails to show even though the element
+          // is genuinely muted.
           a.muted = true;
-          console.log("🔇 Starting muted to bypass autoplay block");
-
-          await a.play();
-
-          // Only now do we know the muted-autoplay bypass actually worked,
-          // so only now does React state reflect "playing, muted".
           setMuted(true);
           setNow({
             url: defaultUrl,
             title: "Live Stream",
             showTitle: "Rewind FM"
           });
+          console.log("🔇 Starting muted to bypass autoplay block");
+
+          await a.play();
 
           console.log("✅ Autoplay started successfully (muted)");
 
@@ -137,11 +140,14 @@ export const AudioProvider: React.FC<React.PropsWithChildren> = ({ children }) =
 
         } catch (err: any) {
           console.error("⚠️ Autoplay blocked by browser:", err.name, err.message);
-          // The muted-bypass attempt didn't work, so undo it — otherwise the
-          // element is left muted with nothing in React state reflecting
-          // that, and a later manual Play would start audio silently with
-          // no way for the user to unmute it.
+          // The muted-bypass attempt didn't work at all — roll back the
+          // optimistic state above so nothing is left stuck "muted" or
+          // "now playing" when actually nothing is playing. Otherwise a
+          // later manual Play would start audio silently with no way for
+          // the user to unmute it.
           a.muted = false;
+          setMuted(false);
+          setNow(undefined);
           // Fallback: User will need to click play button
         }
       }, 300);
