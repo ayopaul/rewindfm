@@ -42,6 +42,10 @@ supabase/*.sql
 # Deploy scripts (may contain credentials)
 scripts/deploy-*.sh
 
+# Local SQLite dev databases (must never overwrite VPS/production data)
+*.db
+*.db-journal
+
 # vercel
 .vercel
 
