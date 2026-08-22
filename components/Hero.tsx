@@ -25,7 +25,7 @@ export default function Hero({
   streamUrl = process.env.NEXT_PUBLIC_STREAM_URL || "",
 }: HeroProps) {
   // USE AUDIO CONTEXT INSTEAD OF LOCAL STATE
-  const { isPlaying, isMuted, play, stop, now } = useAudio();
+  const { isPlaying, isMuted, play, stop, now, unmute } = useAudio();
   
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
   const [resolvedStream, setResolvedStream] = React.useState<string>(streamUrl || "");
@@ -144,15 +144,7 @@ export default function Hero({
                   /* Prominent Unmute Button - Replaces play/stop controls */
                   <button
                     type="button"
-                    onClick={() => {
-                      const audio = document.querySelector('audio');
-                      if (audio) {
-                        audio.muted = false;
-                        // Trigger click event to activate the unmute listeners
-                        const clickEvent = new MouseEvent('click', { bubbles: true });
-                        document.dispatchEvent(clickEvent);
-                      }
-                    }}
+                    onClick={unmute}
                     aria-label="Unmute to hear audio"
                     title="Tap to hear the radio"
                     className="grid h-9 px-4 place-items-center bg-[#F0C419] text-black font-semibold text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-black/30 whitespace-nowrap"

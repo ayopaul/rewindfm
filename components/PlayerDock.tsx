@@ -4,7 +4,7 @@
 import { useAudio } from "./AudioProvider";
 
 export default function PlayerDock() {
-  const { isPlaying, isMuted, now, play, stop, volume, setVolume } = useAudio();
+  const { isPlaying, isMuted, now, play, stop, volume, setVolume, unmute } = useAudio();
 
   // This stream url is the default when opening the site
   const fallbackUrl =
@@ -34,15 +34,7 @@ export default function PlayerDock() {
           {isMuted && isPlaying ? (
             /* Prominent Unmute Button - Matches Hero style */
             <button
-              onClick={() => {
-                const audio = document.querySelector('audio');
-                if (audio) {
-                  audio.muted = false;
-                  // Trigger click event to activate the unmute listeners
-                  const clickEvent = new MouseEvent('click', { bubbles: true });
-                  document.dispatchEvent(clickEvent);
-                }
-              }}
+              onClick={unmute}
               aria-label="Unmute to hear audio"
               title="Tap to hear the radio"
               className="inline-flex h-10 px-5 items-center justify-center shadow-[3px_3px_0_0_rgba(0,0,0,0.6)] bg-[#F0C419] text-black font-semibold text-sm"

@@ -19,6 +19,7 @@ type AudioContextShape = {
   play: (url: string, meta?: Omit<NowPlaying, "url">) => Promise<void>;
   stop: () => void;
   setVolume: (v: number) => void;
+  unmute: () => void;
 };
 
 const AudioCtx = React.createContext<AudioContextShape | null>(null);
@@ -45,12 +46,16 @@ export const AudioProvider: React.FC<React.PropsWithChildren> = ({ children }) =
   React.useEffect(() => {
     console.log("🎵 AudioProvider mounted - initializing audio element");
     
-    // Create audio element
+    // Create audio element and attach it to the DOM (hidden) so it's a real,
+    // queryable element rather than only living in this ref — some mobile
+    // browsers and the Media Session API behave more reliably that way.
     const a = new Audio();
     a.preload = "none";
     a.crossOrigin = "anonymous";
     a.volume = volume;
-    
+    a.style.display = "none";
+    document.body.appendChild(a);
+
     console.log("🔊 Audio element created, volume:", volume);
     
     // Setup event listeners for state synchronization
@@ -97,22 +102,24 @@ export const AudioProvider: React.FC<React.PropsWithChildren> = ({ children }) =
         try {
           a.src = defaultUrl;
           console.log("📡 Audio src set to:", defaultUrl);
-          
+
           // Start MUTED to bypass browser autoplay restrictions
           a.muted = true;
-          setMuted(true);
           console.log("🔇 Starting muted to bypass autoplay block");
-          
+
           await a.play();
-          
-          setNow({ 
-            url: defaultUrl, 
+
+          // Only now do we know the muted-autoplay bypass actually worked,
+          // so only now does React state reflect "playing, muted".
+          setMuted(true);
+          setNow({
+            url: defaultUrl,
             title: "Live Stream",
-            showTitle: "Rewind FM" 
+            showTitle: "Rewind FM"
           });
-          
+
           console.log("✅ Autoplay started successfully (muted)");
-          
+
           // Auto-unmute on ANY user interaction
           const unmuteOnInteraction = () => {
             console.log("👆 User interaction detected - unmuting audio");
@@ -123,13 +130,18 @@ export const AudioProvider: React.FC<React.PropsWithChildren> = ({ children }) =
             document.removeEventListener('keydown', unmuteOnInteraction);
             console.log("🔊 Audio unmuted!");
           };
-          
+
           document.addEventListener('click', unmuteOnInteraction, { once: true });
           document.addEventListener('touchstart', unmuteOnInteraction, { once: true });
           document.addEventListener('keydown', unmuteOnInteraction, { once: true });
-          
+
         } catch (err: any) {
           console.error("⚠️ Autoplay blocked by browser:", err.name, err.message);
+          // The muted-bypass attempt didn't work, so undo it — otherwise the
+          // element is left muted with nothing in React state reflecting
+          // that, and a later manual Play would start audio silently with
+          // no way for the user to unmute it.
+          a.muted = false;
           // Fallback: User will need to click play button
         }
       }, 300);
@@ -188,6 +200,13 @@ export const AudioProvider: React.FC<React.PropsWithChildren> = ({ children }) =
     a.pause();
   };
 
+  const unmute = () => {
+    const a = audioRef.current;
+    if (!a) return;
+    a.muted = false;
+    setMuted(false);
+  };
+
   const setVolume = (v: number) => {
     const a = audioRef.current;
     const vv = Math.min(1, Math.max(0, v));
@@ -199,7 +218,7 @@ export const AudioProvider: React.FC<React.PropsWithChildren> = ({ children }) =
   };
 
   return (
-    <AudioCtx.Provider value={{ isReady, isPlaying, isMuted, now, volume, play, stop, setVolume }}>
+    <AudioCtx.Provider value={{ isReady, isPlaying, isMuted, now, volume, play, stop, setVolume, unmute }}>
       {children}
     </AudioCtx.Provider>
   );
